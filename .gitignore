@@ -1,0 +1,48 @@
+# ============================
+# Dataset - never commit raw images/data
+# ============================
+Fruits-360*/
+Fruits-360 dataset/
+*.jpg
+*.jpeg
+*.png
+*.zip
+*.rar
+
+# (لو عندك صور توضيحية بس عايز تستثنيها من القاعدة اللي فوق، فك التعليق عن السطر ده وحط مسارها)
+# !report/images/*.png
+# !slides/images/*.png
+
+# ============================
+# Trained model - too large for GitHub (335MB > 100MB limit)
+# ============================
+Model/
+*.h5
+*.keras
+
+# ============================
+# Jupyter Notebook
+# ============================
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# ============================
+# Python
+# ============================
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# ============================
+# System files
+# ============================
+.DS_Store
+Thumbs.db
+
+# ============================
+# IDE
+# ============================
+.vscode/
+.idea/
