@@ -237,7 +237,7 @@ jupyter notebook NoteBook/
 | Abdallah Ali | [@abdallah-farahat](https://github.com/abdallah-farahat) |
 | Mohanad Ibrahim | [@Mohanad234128](https://github.com/Mohanad234128) |
 | Faisal Abdulaziz | [@Wttcss](https://github.com/Wttcss) |
-| Marawan Mohamed | — |
+| Marawan Mohamed | [@luka666-grim](https://github.com/luka666-grim) |
 
 </div>
 
