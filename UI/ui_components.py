@@ -15,24 +15,23 @@ DESIGN TOKENS (do not introduce new colors elsewhere — reuse these):
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ---- Design tokens — "premium fresh market" palette ------------------------
-# Warm, alive, and unmistakably tied to fruit/veg/nut retail — not a tech-lab
-# black. Two accents (tomato→citrus gradient + leaf green) plus a warm cream
-# base instead of near-black. Reuse these tokens everywhere; don't hardcode
-# new hex colors elsewhere.
-ACCENT = "#FF6B4A"        # tomato-orange — primary accent
-ACCENT_DEEP = "#E8432A"   # deeper tomato red, for gradient stops
-ACCENT2 = "#3FA34D"       # leaf green — secondary accent
+# ---- Design tokens — "premium dark pantry" palette --------------------------
+# Rich, warm dark background (charcoal with a brown undertone, not cold
+# tech-black) so the tomato/citrus/leaf accents glow against it. Reuse these
+# tokens everywhere; don't hardcode new hex colors elsewhere.
+ACCENT = "#FF7A50"        # tomato-orange — primary accent, brightened for dark bg contrast
+ACCENT_DEEP = "#FF4B2B"   # deeper tomato red, for gradient stops
+ACCENT2 = "#5FC26A"       # leaf green — secondary accent, brightened for dark bg
 GRADIENT = f"linear-gradient(120deg, {ACCENT}, {ACCENT_DEEP})"
-GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT2}, #7CC576)"
+GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT2}, #3FA34D)"
 
-BG = "#FBF4E8"             # warm cream base, not black
-BG_ELEV = "#FFFFFF"        # card surface
-BG_ELEV_2 = "#FFF8EE"      # soft alternate surface
-BORDER = "#EADFC8"         # warm hairline border
-TEXT = "#2E2418"           # warm espresso, not pure black
-TEXT_DIM = "#7A6E5C"
-TEXT_FAINT = "#B3A78F"
+BG = "#161210"             # warm near-black, brown undertone — not cold cyber-black
+BG_ELEV = "#211A15"        # card surface
+BG_ELEV_2 = "#271F19"      # soft alternate surface
+BORDER = "#3A2E24"         # warm dark hairline border
+TEXT = "#F3E9DA"           # warm cream text, not stark white
+TEXT_DIM = "#AB9B87"
+TEXT_FAINT = "#6E6151"
 
 PAGES = [
     ("views/landing.py", "Home", "🏠"),
@@ -125,12 +124,12 @@ def inject_global_css():
     .glass-card {{
         position: relative; background: {BG_ELEV};
         border: 1px solid {BORDER}; border-radius: 20px; padding: 1.75rem;
-        box-shadow: 0 4px 18px -8px rgba(120, 90, 40, .12);
+        box-shadow: 0 10px 28px -14px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.03);
         transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease;
     }}
     .glass-card:hover {{
-        border-color: {ACCENT}77; transform: translateY(-4px);
-        box-shadow: 0 20px 42px -16px {ACCENT}44;
+        border-color: {ACCENT}88; transform: translateY(-4px);
+        box-shadow: 0 22px 46px -16px {ACCENT}3D, inset 0 1px 0 rgba(255,255,255,.04);
     }}
 
     .accent-btn {{
