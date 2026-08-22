@@ -77,7 +77,7 @@ else:
             for i, fname in enumerate(sample_files[:8]):
                 with sample_cols[i % len(sample_cols)]:
                     img_path = os.path.join(sample_dir, fname)
-                    st.image(img_path, use_container_width=True)
+                    st.image(img_path, use_column_width=True)
                     if st.button("Use this", key=f"sample_{fname}"):
                         st.session_state["chosen_sample"] = img_path
         else:
@@ -100,7 +100,7 @@ else:
         img_col, result_col = st.columns([1, 1.3])
 
         with img_col:
-            st.image(chosen_image, caption=chosen_source, use_container_width=True)
+            st.image(chosen_image, caption=chosen_source, use_column_width=True)
             placeholder = st.empty()
             with placeholder:
                 ui.scanning_overlay_note()
