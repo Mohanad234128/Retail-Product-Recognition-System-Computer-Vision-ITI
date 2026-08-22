@@ -38,7 +38,7 @@ if model_path:
 if model is None:
     st.markdown(f"""
     <div class="glass-card" style="border-color:#EF444455;">
-      <div style="color:#EF4444; font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:.5rem;">
+      <div style="color:#EF4444; font-family:'Fraunces',serif; font-weight:600; margin-bottom:.5rem;">
         ⚠ Model weights not found
       </div>
       <div style="color:{ui.TEXT_DIM}; font-size:.88rem; line-height:1.6;">

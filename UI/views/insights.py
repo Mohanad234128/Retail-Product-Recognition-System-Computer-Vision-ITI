@@ -41,8 +41,8 @@ fig.add_trace(go.Scatter(
 ))
 fig.add_trace(go.Scatter(
     x=epochs, y=val_acc, mode="lines+markers", name="Val Accuracy",
-    line=dict(color=ui.CYAN, width=3), marker=dict(size=9, color=ui.CYAN),
-    fill="tozeroy", fillcolor="rgba(0,240,192,0.08)",
+    line=dict(color=ui.ACCENT, width=3), marker=dict(size=9, color=ui.ACCENT),
+    fill="tozeroy", fillcolor="rgba(255,107,74,0.12)",
 ))
 fig.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",

@@ -6,40 +6,76 @@ inject_global_css() first, then top_nav(active=...) — except the landing
 page, which stays nav-free and immersive on purpose.
 
 DESIGN TOKENS (do not introduce new colors elsewhere — reuse these):
-  Background : near-black with a slow-moving two-color aurora glow
-  Accents    : CYAN (primary) + VIOLET (secondary), used for gradients/glow only
-  Type       : Space Grotesk (display) / Inter (body)
-  Surfaces   : glass cards, 1px hairline borders, gradient-glow on hover
+  Background : warm cream with a slow-moving harvest-color glow
+  Accents    : ACCENT (tomato-orange) + ACCENT2 (leaf green), used for gradients/glow only
+  Type       : Fraunces (display) / Inter (body)
+  Surfaces   : soft cards on cream, warm hairline borders, gradient-glow on hover
 """
 
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ---- Design tokens ---------------------------------------------------------
-CYAN = "#00F0C0"
-VIOLET = "#8B5CF6"
-GRADIENT = f"linear-gradient(120deg, {CYAN}, {VIOLET})"
-BG = "#05070C"
-BG_ELEV = "#0D1220"
-BG_ELEV_2 = "#131A2B"
-BORDER = "#1E2740"
-TEXT = "#EDF1F7"
-TEXT_DIM = "#8992A8"
-TEXT_FAINT = "#4E5872"
+# ---- Design tokens — "premium fresh market" palette ------------------------
+# Warm, alive, and unmistakably tied to fruit/veg/nut retail — not a tech-lab
+# black. Two accents (tomato→citrus gradient + leaf green) plus a warm cream
+# base instead of near-black. Reuse these tokens everywhere; don't hardcode
+# new hex colors elsewhere.
+ACCENT = "#FF6B4A"        # tomato-orange — primary accent
+ACCENT_DEEP = "#E8432A"   # deeper tomato red, for gradient stops
+ACCENT2 = "#3FA34D"       # leaf green — secondary accent
+GRADIENT = f"linear-gradient(120deg, {ACCENT}, {ACCENT_DEEP})"
+GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT2}, #7CC576)"
+
+BG = "#FBF4E8"             # warm cream base, not black
+BG_ELEV = "#FFFFFF"        # card surface
+BG_ELEV_2 = "#FFF8EE"      # soft alternate surface
+BORDER = "#EADFC8"         # warm hairline border
+TEXT = "#2E2418"           # warm espresso, not pure black
+TEXT_DIM = "#7A6E5C"
+TEXT_FAINT = "#B3A78F"
 
 PAGES = [
     ("views/landing.py", "Home", "🏠"),
     ("views/demo.py", "Live Demo", "🔍"),
     ("views/insights.py", "Model Insights", "📊"),
     ("views/gallery.py", "Class Gallery", "🗂️"),
-    ("views/about.py", "About", "✦"),
+    ("views/about.py", "About", "✨"),
 ]
+
+# Rough base-category -> emoji mapping for produce-themed chips/labels.
+# Falls back to a leaf if a category isn't in here.
+PRODUCE_EMOJI = {
+    "Apple": "🍎", "Apricot": "🍑", "Avocado": "🥑", "Banana": "🍌",
+    "Beetroot": "🫐", "Blackberry": "🫐", "Blueberry": "🫐", "Cabbage": "🥬",
+    "Cactus": "🌵", "Cantaloupe": "🍈", "Carambola": "⭐", "Carrot": "🥕",
+    "Cauliflower": "🥦", "Celery": "🥬", "Cherimoya": "🍈", "Cherry": "🍒",
+    "Chestnut": "🌰", "Clementine": "🍊", "Cocos": "🥥", "Corn": "🌽",
+    "Cucumber": "🥒", "Dates": "🌴", "Eggplant": "🍆", "Fig": "🫐",
+    "Ginger": "🫚", "Gooseberry": "🫐", "Granadilla": "🫐", "Grape": "🍇",
+    "Grapefruit": "🍊", "Guava": "🍈", "Hazelnut": "🌰", "Huckleberry": "🫐",
+    "Kaki": "🍅", "Kiwi": "🥝", "Kohlrabi": "🥦", "Kumquats": "🍊",
+    "Lemon": "🍋", "Limes": "🍋", "Lychee": "🍈", "Mandarine": "🍊",
+    "Mango": "🥭", "Mangostan": "🍈", "Maracuja": "🫐", "Melon": "🍈",
+    "Mulberry": "🫐", "Nectarine": "🍑", "Nut": "🌰", "Onion": "🧅",
+    "Orange": "🍊", "Papaya": "🍈", "Passion": "🫐", "Peach": "🍑",
+    "Peanut": "🥜", "Pear": "🍐", "Pepino": "🍈", "Pepper": "🌶️",
+    "Physalis": "🫐", "Pineapple": "🍍", "Pistachio": "🥜", "Pitahaya": "🐉",
+    "Plum": "🍑", "Pomegranate": "🫐", "Pomelo": "🍊", "Potato": "🥔",
+    "Quince": "🍐", "Rambutan": "🍈", "Raspberry": "🫐", "Redcurrant": "🫐",
+    "Salak": "🌴", "Strawberry": "🍓", "Tamarillo": "🍅", "Tangelo": "🍊",
+    "Tomato": "🍅", "Walnut": "🌰", "Watermelon": "🍉", "Zucchini": "🥒",
+    "Almonds": "🌰", "Orange": "🍊",
+}
+
+
+def produce_emoji(category: str) -> str:
+    return PRODUCE_EMOJI.get(category, "🌿")
 
 
 def inject_global_css():
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
 
     #MainMenu, footer, header {{ visibility: hidden; }}
     section[data-testid="stSidebar"] {{ display: none; }}
@@ -47,104 +83,108 @@ def inject_global_css():
     .stApp {{ background: {BG}; color: {TEXT}; }}
 
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
-    h1, h2, h3, h4 {{ font-family: 'Space Grotesk', sans-serif; }}
+    h1, h2, h3, h4 {{ font-family: 'Fraunces', serif; }}
 
     ::-webkit-scrollbar {{ width: 10px; }}
     ::-webkit-scrollbar-track {{ background: {BG}; }}
     ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 6px; }}
 
-    /* ---- Aurora ambient background, fixed to viewport ---- */
+    /* ---- Harvest-glow ambient background, fixed to viewport ---- */
     .aurora-bg {{
         position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
         background: {BG};
     }}
     .aurora-blob {{
-        position: absolute; border-radius: 50%; filter: blur(90px); opacity: .28;
+        position: absolute; border-radius: 50%; filter: blur(100px); opacity: .32;
     }}
-    .blob-a {{ width: 620px; height: 620px; background: {CYAN}; top: -12%; left: -8%;
+    .blob-a {{ width: 640px; height: 640px; background: #FFC24B; top: -14%; left: -8%;
                animation: driftA 22s ease-in-out infinite alternate; }}
-    .blob-b {{ width: 560px; height: 560px; background: {VIOLET}; bottom: -14%; right: -6%;
+    .blob-b {{ width: 580px; height: 580px; background: {ACCENT2}; bottom: -16%; right: -6%;
                animation: driftB 26s ease-in-out infinite alternate; }}
-    .blob-c {{ width: 380px; height: 380px; background: {CYAN}; top: 40%; right: 18%; opacity: .14;
+    .blob-c {{ width: 420px; height: 420px; background: {ACCENT}; top: 42%; right: 16%; opacity: .2;
                animation: driftC 30s ease-in-out infinite alternate; }}
+    .blob-d {{ width: 340px; height: 340px; background: #C86BFF; top: 6%; left: 42%; opacity: .12;
+               animation: driftB 34s ease-in-out infinite alternate; }}
     @keyframes driftA {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(60px,80px) scale(1.15); }} }}
     @keyframes driftB {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(-70px,-50px) scale(1.1); }} }}
     @keyframes driftC {{ 0% {{ transform: translate(0,0); }} 100% {{ transform: translate(-40px,60px); }} }}
     .grain-overlay {{
-        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .035;
+        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .025;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }}
 
     .section {{ padding: 3.5rem 6vw; max-width: 1180px; margin: 0 auto; }}
     .section-label {{
-        display: inline-block; color: {CYAN}; font-family: 'Space Grotesk', sans-serif; font-weight: 600;
-        letter-spacing: .2em; text-transform: uppercase; font-size: .72rem; margin-bottom: .8rem;
-        border: 1px solid {CYAN}33; padding: .3rem .8rem; border-radius: 999px; background: {CYAN}0D;
+        display: inline-block; color: {ACCENT_DEEP}; font-family: 'Inter', sans-serif; font-weight: 700;
+        letter-spacing: .18em; text-transform: uppercase; font-size: .72rem; margin-bottom: .8rem;
+        border: 1px solid {ACCENT}44; padding: .3rem .8rem; border-radius: 999px; background: {ACCENT}14;
     }}
     .section-title {{ font-size: 2.3rem; font-weight: 700; margin-bottom: .5rem; color: {TEXT}; letter-spacing: -.01em; }}
     .section-sub {{ color: {TEXT_DIM}; font-size: 1rem; margin-bottom: 2.5rem; max-width: 620px; line-height: 1.6; }}
 
     .glass-card {{
-        position: relative; background: linear-gradient(180deg, {BG_ELEV} 0%, #0A0E18 100%);
-        border: 1px solid {BORDER}; border-radius: 18px; padding: 1.75rem;
+        position: relative; background: {BG_ELEV};
+        border: 1px solid {BORDER}; border-radius: 20px; padding: 1.75rem;
+        box-shadow: 0 4px 18px -8px rgba(120, 90, 40, .12);
         transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease;
     }}
     .glass-card:hover {{
-        border-color: {CYAN}55; transform: translateY(-4px);
-        box-shadow: 0 18px 40px -16px {CYAN}33;
+        border-color: {ACCENT}77; transform: translateY(-4px);
+        box-shadow: 0 20px 42px -16px {ACCENT}44;
     }}
 
     .accent-btn {{
-        display: inline-block; background: {GRADIENT}; color: #04120E !important;
-        font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: .95rem;
+        display: inline-block; background: {GRADIENT}; color: #FFFBF3 !important;
+        font-family: 'Inter', sans-serif; font-weight: 700; font-size: .95rem;
         padding: .85rem 1.9rem; border-radius: 12px; text-decoration: none !important;
-        box-shadow: 0 0 30px {CYAN}44; transition: transform .2s ease, box-shadow .2s ease;
+        box-shadow: 0 10px 26px -8px {ACCENT_DEEP}66; transition: transform .2s ease, box-shadow .2s ease;
         border: none;
     }}
-    .accent-btn:hover {{ transform: translateY(-2px); box-shadow: 0 0 44px {CYAN}77; }}
+    .accent-btn:hover {{ transform: translateY(-2px); box-shadow: 0 14px 34px -8px {ACCENT_DEEP}88; }}
     .ghost-btn {{
-        display: inline-block; background: {BG_ELEV}88; color: {TEXT} !important;
-        font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: .95rem;
+        display: inline-block; background: {BG_ELEV}CC; color: {TEXT} !important;
+        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .95rem;
         padding: .82rem 1.85rem; border-radius: 12px; text-decoration: none !important;
-        border: 1px solid {BORDER}; transition: border-color .2s ease, color .2s ease;
+        border: 1.5px solid {BORDER}; transition: border-color .2s ease, color .2s ease;
         backdrop-filter: blur(6px);
     }}
-    .ghost-btn:hover {{ border-color: {CYAN}; color: {CYAN} !important; }}
+    .ghost-btn:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; }}
 
     .chip {{
-        display: inline-block; background: {BG_ELEV}; border: 1px solid {BORDER};
-        color: {TEXT_DIM}; font-size: .78rem; padding: .35rem .85rem; border-radius: 999px;
+        display: inline-block; background: {BG_ELEV_2}; border: 1px solid {BORDER};
+        color: {TEXT_DIM}; font-size: .8rem; padding: .38rem .9rem; border-radius: 999px;
         margin: .2rem; transition: all .2s ease;
     }}
-    .chip:hover {{ border-color: {CYAN}; color: {CYAN}; }}
+    .chip:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; background: {ACCENT}12; }}
 
     /* Native Streamlit buttons restyled to match custom nav / CTAs */
     div[data-testid="stButton"] > button {{
-        background: {BG_ELEV}; color: {TEXT}; border: 1px solid {BORDER}; border-radius: 10px;
-        font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: .85rem;
+        background: {BG_ELEV}; color: {TEXT}; border: 1.5px solid {BORDER}; border-radius: 10px;
+        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
         padding: .5rem 1.1rem; transition: all .2s ease;
     }}
-    div[data-testid="stButton"] > button:hover {{ border-color: {CYAN}; color: {CYAN}; }}
-    div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {CYAN}; color: {CYAN}; }}
+    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; }}
+    div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; }}
 
-    .nav-active > button {{ border-color: {CYAN} !important; color: {CYAN} !important; background: {CYAN}14 !important; }}
+    .nav-active > button {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}
 
     /* Primary CTA buttons (st.button(type="primary") / st.link_button) get the full gradient treatment */
     button[kind="primary"], a[data-testid="stBaseLinkButton-primary"] {{
-        background: {GRADIENT} !important; color: #04120E !important; border: none !important;
-        font-weight: 700 !important; box-shadow: 0 0 30px {CYAN}44 !important;
+        background: {GRADIENT} !important; color: #FFFBF3 !important; border: none !important;
+        font-weight: 700 !important; box-shadow: 0 10px 26px -8px {ACCENT_DEEP}66 !important;
         transition: transform .2s ease, box-shadow .2s ease !important;
     }}
     button[kind="primary"]:hover, a[data-testid="stBaseLinkButton-primary"]:hover {{
-        transform: translateY(-2px); box-shadow: 0 0 44px {CYAN}77 !important;
+        transform: translateY(-2px); box-shadow: 0 14px 34px -8px {ACCENT_DEEP}88 !important;
     }}
     a[data-testid="stBaseLinkButton-secondary"] {{
-        background: {BG_ELEV}88 !important; border: 1px solid {BORDER} !important; backdrop-filter: blur(6px);
+        background: {BG_ELEV}CC !important; border: 1.5px solid {BORDER} !important; backdrop-filter: blur(6px);
+        color: {TEXT} !important;
     }}
-    a[data-testid="stBaseLinkButton-secondary"]:hover {{ border-color: {CYAN} !important; color: {CYAN} !important; }}
+    a[data-testid="stBaseLinkButton-secondary"]:hover {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; }}
 
     div[data-testid="stFileUploader"] {{
-        background: {BG_ELEV}88; border: 1.5px dashed {BORDER}; border-radius: 16px; padding: 1rem;
+        background: {BG_ELEV}CC; border: 1.5px dashed {ACCENT}88; border-radius: 16px; padding: 1rem;
         backdrop-filter: blur(6px);
     }}
     .stProgress > div > div > div > div {{ background: {GRADIENT}; }}
@@ -157,6 +197,7 @@ def inject_global_css():
       <div class="aurora-blob blob-a"></div>
       <div class="aurora-blob blob-b"></div>
       <div class="aurora-blob blob-c"></div>
+      <div class="aurora-blob blob-d"></div>
     </div>
     <div class="grain-overlay"></div>
     """, unsafe_allow_html=True)
@@ -171,11 +212,11 @@ def top_nav(active: str):
         background: {BG}CC; border-bottom: 1px solid {BORDER};
         padding: .9rem 6vw .8rem 6vw; display:flex; align-items:center; justify-content:space-between;
       }}
-      .nav-brand {{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1rem; color:{TEXT}; }}
+      .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT}; }}
       .nav-brand span {{ background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; }}
     </style>
     <div class="nav-wrap">
-      <div class="nav-brand">◆ Retail<span>Vision</span></div>
+      <div class="nav-brand">🧺 Harvest<span>Vision</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -201,14 +242,14 @@ def prediction_card(display_label: str, raw_label: str, confidence: float):
     st.markdown(f"""
     <div class="glass-card fade-in" style="text-align:center; padding:2.4rem 1.5rem;">
       <div class="section-label">Top Prediction</div>
-      <div style="font-family:'Space Grotesk',sans-serif; font-size:2rem; font-weight:700; color:{TEXT}; margin:.6rem 0 .2rem 0;">
+      <div style="font-family:'Fraunces',serif; font-size:2rem; font-weight:700; color:{TEXT}; margin:.6rem 0 .2rem 0;">
         {display_label}
       </div>
       <div style="color:{TEXT_FAINT}; font-size:.78rem; margin-bottom:1.3rem;">raw label: {raw_label}</div>
       <div style="background:{BORDER}; border-radius:999px; height:14px; overflow:hidden; margin-bottom:.6rem;">
-        <div style="width:{pct}%; height:100%; background:{GRADIENT}; box-shadow:0 0 14px {CYAN}66;"></div>
+        <div style="width:{pct}%; height:100%; background:{GRADIENT}; box-shadow:0 0 14px {ACCENT}66;"></div>
       </div>
-      <div style="font-family:'Space Grotesk',sans-serif; font-size:1.5rem; background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700;">{pct}%</div>
+      <div style="font-family:'Fraunces',serif; font-size:1.5rem; background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700;">{pct}%</div>
       <div style="color:{TEXT_DIM}; font-size:.75rem; text-transform:uppercase; letter-spacing:.1em;">confidence</div>
     </div>
     """, unsafe_allow_html=True)
@@ -222,7 +263,7 @@ def top_k_bars(results):
         <div style="margin-bottom:.9rem;">
           <div style="display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:.3rem;">
             <span style="color:{TEXT};">#{i+1} {disp}</span>
-            <span style="color:{CYAN}; font-weight:600;">{pct}%</span>
+            <span style="color:{ACCENT}; font-weight:600;">{pct}%</span>
           </div>
           <div style="background:{BORDER}; border-radius:999px; height:8px; overflow:hidden;">
             <div style="width:{pct}%; height:100%; background:{GRADIENT};"></div>
@@ -234,9 +275,9 @@ def top_k_bars(results):
 
 def scanning_overlay_note():
     st.markdown(f"""
-    <div style="display:flex; align-items:center; gap:.6rem; color:{CYAN}; font-family:'Space Grotesk',sans-serif;
+    <div style="display:flex; align-items:center; gap:.6rem; color:{ACCENT}; font-family:'Fraunces',serif;
                 font-size:.85rem; margin:.5rem 0;">
-      <span style="width:8px;height:8px;border-radius:50%;background:{CYAN};box-shadow:0 0 10px {CYAN};
+      <span style="width:8px;height:8px;border-radius:50%;background:{ACCENT};box-shadow:0 0 10px {ACCENT};
                     animation:pulse 1s ease-in-out infinite;"></span>
       Scanning image…
     </div>
@@ -246,7 +287,7 @@ def scanning_overlay_note():
 
 def metric_counters(val_acc=94.18, params_m=82.8, classes=260, train_imgs=137221):
     components.html(f"""
-    <div style="font-family:'Space Grotesk',sans-serif; display:flex; gap:1.4rem; flex-wrap:wrap; justify-content:center;">
+    <div style="font-family:'Fraunces',serif; display:flex; gap:1.4rem; flex-wrap:wrap; justify-content:center;">
       <style>
         .mcard {{ background:{BG_ELEV}; border:1px solid {BORDER}; border-radius:16px; padding:1.7rem 2.3rem;
                   text-align:center; min-width:150px; }}
@@ -294,8 +335,8 @@ def pipeline_steps():
             st.markdown(f"""
             <div class="glass-card fade-in" style="min-height:230px;">
               <div style="background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent;
-                          font-family:'Space Grotesk',sans-serif; font-size:1.4rem; font-weight:700; margin-bottom:.6rem;">{num}</div>
-              <div style="font-family:'Space Grotesk',sans-serif; font-weight:600; margin-bottom:.5rem;">{title}</div>
+                          font-family:'Fraunces',serif; font-size:1.4rem; font-weight:700; margin-bottom:.6rem;">{num}</div>
+              <div style="font-family:'Fraunces',serif; font-weight:600; margin-bottom:.5rem;">{title}</div>
               <div style="color:{TEXT_DIM}; font-size:.82rem; line-height:1.5;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -312,7 +353,7 @@ def insight_callouts():
         with col:
             st.markdown(f"""
             <div class="glass-card fade-in">
-              <div style="font-family:'Space Grotesk',sans-serif; color:{CYAN}; font-weight:600; margin-bottom:.5rem;">{title}</div>
+              <div style="font-family:'Fraunces',serif; color:{ACCENT}; font-weight:600; margin-bottom:.5rem;">{title}</div>
               <div style="color:{TEXT_DIM}; font-size:.85rem; line-height:1.55;">{desc}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -321,12 +362,13 @@ def insight_callouts():
 def class_showcase(groups: dict):
     html = ""
     for cat, names in groups.items():
+        emoji = produce_emoji(cat)
         chip_html = "".join(f'<span class="chip">{n}</span>' for n in names[:6])
         more = f'<span class="chip">+{len(names)-6} more</span>' if len(names) > 6 else ""
         html += f"""
         <div class="glass-card fade-in" style="margin-bottom:1rem;">
-          <div style="font-family:'Space Grotesk',sans-serif; font-weight:600; color:{TEXT}; margin-bottom:.6rem;">
-            {cat} <span style="color:{TEXT_DIM}; font-weight:400; font-size:.8rem;">({len(names)} variant{'s' if len(names) != 1 else ''})</span>
+          <div style="font-family:'Fraunces',serif; font-weight:600; color:{TEXT}; margin-bottom:.6rem; font-size:1.05rem;">
+            {emoji} {cat} <span style="color:{TEXT_DIM}; font-weight:400; font-size:.8rem;">({len(names)} variant{'s' if len(names) != 1 else ''})</span>
           </div>
           <div>{chip_html}{more}</div>
         </div>

@@ -24,7 +24,7 @@ st.markdown(f"""
     shelf, checkout, and inventory pipelines.
   </p>
   <p style="color:{ui.TEXT_DIM}; line-height:1.7; font-size:.95rem;">
-    The network reached <b style="color:{ui.CYAN};">94.18% validation accuracy</b> after just 5 epochs
+    The network reached <b style="color:{ui.ACCENT};">94.18% validation accuracy</b> after just 5 epochs
     of training — with the curve still climbing when training stopped, suggesting real headroom left
     for further tuning.
   </p>
@@ -44,10 +44,10 @@ team = [
 cols = st.columns(len(team))
 for col, (name, link) in zip(cols, team):
     with col:
-        link_html = f'<a href="{link}" target="_blank" style="color:{ui.CYAN}; font-size:.78rem; text-decoration:none;">↗ GitHub</a>' if link else ""
+        link_html = f'<a href="{link}" target="_blank" style="color:{ui.ACCENT}; font-size:.78rem; text-decoration:none;">↗ GitHub</a>' if link else ""
         st.markdown(f"""
         <div class="glass-card fade-in" style="text-align:center;">
-          <div style="font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:.92rem; margin-bottom:.4rem;">{name}</div>
+          <div style="font-family:'Fraunces',serif; font-weight:600; font-size:.92rem; margin-bottom:.4rem;">{name}</div>
           {link_html}
         </div>
         """, unsafe_allow_html=True)

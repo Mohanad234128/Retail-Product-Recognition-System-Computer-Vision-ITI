@@ -14,8 +14,8 @@ hidden via position="hidden" since we render our own nav bar instead.
 import streamlit as st
 
 st.set_page_config(
-    page_title="RetailVision | CV Product Recognition",
-    page_icon="◆",
+    page_title="Harvest Vision | Fresh Produce Recognition",
+    page_icon="🧺",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
