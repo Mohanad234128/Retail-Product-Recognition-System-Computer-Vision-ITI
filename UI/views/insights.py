@@ -37,12 +37,12 @@ val_acc = [79.57, 87.13, 91.12, 91.16, 94.18]
 fig = go.Figure()
 fig.add_trace(go.Scatter(
     x=epochs, y=train_acc, mode="lines+markers", name="Train Accuracy",
-    line=dict(color=ui.TEXT_DIM, width=2), marker=dict(size=7),
+    line=dict(color=ui.ACCENT_BLUE, width=2, dash="dot"), marker=dict(size=7, color=ui.ACCENT_BLUE),
 ))
 fig.add_trace(go.Scatter(
     x=epochs, y=val_acc, mode="lines+markers", name="Val Accuracy",
-    line=dict(color=ui.ACCENT, width=3), marker=dict(size=9, color=ui.ACCENT),
-    fill="tozeroy", fillcolor="rgba(255,107,74,0.12)",
+    line=dict(color=ui.ACCENT, width=3), marker=dict(size=9, color=ui.ACCENT_YELLOW),
+    fill="tozeroy", fillcolor="rgba(45,212,167,0.14)",
 ))
 fig.update_layout(
     plot_bgcolor="rgba(0,0,0,0)",

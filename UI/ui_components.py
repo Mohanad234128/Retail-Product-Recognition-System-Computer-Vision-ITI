@@ -6,32 +6,47 @@ inject_global_css() first, then top_nav(active=...) — except the landing
 page, which stays nav-free and immersive on purpose.
 
 DESIGN TOKENS (do not introduce new colors elsewhere — reuse these):
-  Background : warm cream with a slow-moving harvest-color glow
-  Accents    : ACCENT (tomato-orange) + ACCENT2 (leaf green), used for gradients/glow only
+  Background : cool neutral dark slate (not brown/orange, not gloomy) —
+               produce colors show up as accents, not as the base hue
+  Accents    : ACCENT (fresh teal-green) + ACCENT_DEEP (sky blue) form the
+               primary gradient; ACCENT_YELLOW / ACCENT_BLUE / ACCENT_PURPLE
+               / ACCENT2 add variety for labels, chips, and bounding boxes
   Type       : Fraunces (display) / Inter (body)
-  Surfaces   : soft cards on cream, warm hairline borders, gradient-glow on hover
+  Surfaces   : plain glass cards, static single-color frames — no animated
+               color-cycling or gradient-fill effects
+
+IMPORTANT — Streamlit markdown gotcha: inside any HTML string passed to
+st.markdown(unsafe_allow_html=True), never put a blank line immediately
+before a line indented 4+ spaces. Streamlit's markdown parser treats that
+combination as an indented code block and renders the HTML as literal
+text instead of parsing it. Keep HTML body content (outside <style> tags)
+either free of internal blank lines, or indented under 4 spaces throughout.
 """
 
 import streamlit as st
 import streamlit.components.v1 as components
 
-# ---- Design tokens — "premium dark pantry" palette --------------------------
-# Rich, warm dark background (charcoal with a brown undertone, not cold
-# tech-black) so the tomato/citrus/leaf accents glow against it. Reuse these
-# tokens everywhere; don't hardcode new hex colors elsewhere.
-ACCENT = "#FF7A50"        # tomato-orange — primary accent, brightened for dark bg contrast
-ACCENT_DEEP = "#FF4B2B"   # deeper tomato red, for gradient stops
-ACCENT2 = "#5FC26A"       # leaf green — secondary accent, brightened for dark bg
+# ---- Design tokens — "fresh & professional" palette -------------------------
+# Cool dark neutral base (not brown/orange) so produce-color accents (green,
+# yellow, blue, purple, tomato-red) pop without tinting the whole app warm.
+# Reuse these tokens everywhere; don't hardcode new hex colors elsewhere.
+ACCENT = "#2DD4A7"          # fresh teal-green — primary accent
+ACCENT_DEEP = "#0EA5E9"     # sky blue — primary gradient partner
+ACCENT2 = "#FBBF24"         # lemon yellow — secondary accent
+ACCENT_YELLOW = "#FACC15"   # banana / corn
+ACCENT_BLUE = "#60A5FA"     # blueberry
+ACCENT_PURPLE = "#A78BFA"   # grape
+ACCENT_TOMATO = "#FB7161"   # tomato-red, used sparingly (e.g. tomato label)
 GRADIENT = f"linear-gradient(120deg, {ACCENT}, {ACCENT_DEEP})"
-GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT2}, #3FA34D)"
+GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT}, #22C55E)"
 
-BG = "#161210"             # warm near-black, brown undertone — not cold cyber-black
-BG_ELEV = "#211A15"        # card surface
-BG_ELEV_2 = "#271F19"      # soft alternate surface
-BORDER = "#3A2E24"         # warm dark hairline border
-TEXT = "#F3E9DA"           # warm cream text, not stark white
-TEXT_DIM = "#AB9B87"
-TEXT_FAINT = "#6E6151"
+BG = "#10141C"               # cool neutral dark slate — not brown, not gloomy
+BG_ELEV = "#181E2A"          # card surface
+BG_ELEV_2 = "#1E2534"        # soft alternate surface
+BORDER = "#2C3346"           # cool hairline border
+TEXT = "#EEF2F8"             # cool near-white text
+TEXT_DIM = "#98A2B8"
+TEXT_FAINT = "#5C6478"
 
 PAGES = [
     ("views/landing.py", "Home", "🏠"),
@@ -88,27 +103,29 @@ def inject_global_css():
     ::-webkit-scrollbar-track {{ background: {BG}; }}
     ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 6px; }}
 
-    /* ---- Harvest-glow ambient background, fixed to viewport ---- */
+    /* ---- Fresh ambient background, fixed to viewport ---- */
     .aurora-bg {{
         position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
         background: {BG};
     }}
     .aurora-blob {{
-        position: absolute; border-radius: 50%; filter: blur(100px); opacity: .32;
+        position: absolute; border-radius: 50%; filter: blur(105px);
     }}
-    .blob-a {{ width: 640px; height: 640px; background: #FFC24B; top: -14%; left: -8%;
-               animation: driftA 22s ease-in-out infinite alternate; }}
-    .blob-b {{ width: 580px; height: 580px; background: {ACCENT2}; bottom: -16%; right: -6%;
-               animation: driftB 26s ease-in-out infinite alternate; }}
-    .blob-c {{ width: 420px; height: 420px; background: {ACCENT}; top: 42%; right: 16%; opacity: .2;
-               animation: driftC 30s ease-in-out infinite alternate; }}
-    .blob-d {{ width: 340px; height: 340px; background: #C86BFF; top: 6%; left: 42%; opacity: .12;
-               animation: driftB 34s ease-in-out infinite alternate; }}
+    .blob-a {{ width: 620px; height: 620px; background: {ACCENT_YELLOW}; opacity: .30; top: -12%; left: -8%;
+               animation: driftA 20s ease-in-out infinite alternate; }}
+    .blob-b {{ width: 580px; height: 580px; background: {ACCENT2}; opacity: .28; bottom: -16%; right: -6%;
+               animation: driftB 24s ease-in-out infinite alternate; }}
+    .blob-c {{ width: 460px; height: 460px; background: {ACCENT}; opacity: .30; top: 40%; right: 14%;
+               animation: driftC 28s ease-in-out infinite alternate; }}
+    .blob-d {{ width: 380px; height: 380px; background: {ACCENT_PURPLE}; opacity: .22; top: 4%; left: 40%;
+               animation: driftB 32s ease-in-out infinite alternate; }}
+    .blob-e {{ width: 420px; height: 420px; background: {ACCENT_BLUE}; opacity: .2; bottom: 6%; left: 12%;
+               animation: driftC 26s ease-in-out infinite alternate; }}
     @keyframes driftA {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(60px,80px) scale(1.15); }} }}
     @keyframes driftB {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(-70px,-50px) scale(1.1); }} }}
     @keyframes driftC {{ 0% {{ transform: translate(0,0); }} 100% {{ transform: translate(-40px,60px); }} }}
     .grain-overlay {{
-        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .025;
+        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .03;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }}
 
@@ -191,12 +208,12 @@ def inject_global_css():
     .fade-in {{ animation: fadeUp .7s ease both; }}
     @keyframes fadeUp {{ from {{ opacity:0; transform: translateY(14px); }} to {{ opacity:1; transform: translateY(0); }} }}
     </style>
-
     <div class="aurora-bg">
-      <div class="aurora-blob blob-a"></div>
-      <div class="aurora-blob blob-b"></div>
-      <div class="aurora-blob blob-c"></div>
-      <div class="aurora-blob blob-d"></div>
+    <div class="aurora-blob blob-a"></div>
+    <div class="aurora-blob blob-b"></div>
+    <div class="aurora-blob blob-c"></div>
+    <div class="aurora-blob blob-d"></div>
+    <div class="aurora-blob blob-e"></div>
     </div>
     <div class="grain-overlay"></div>
     """, unsafe_allow_html=True)
