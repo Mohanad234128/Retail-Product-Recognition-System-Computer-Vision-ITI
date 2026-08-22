@@ -24,7 +24,7 @@ landing = st.Page("views/landing.py", title="Home", icon="🏠", default=True)
 demo = st.Page("views/demo.py", title="Live Demo", icon="🔍")
 insights = st.Page("views/insights.py", title="Model Insights", icon="📊")
 gallery = st.Page("views/gallery.py", title="Class Gallery", icon="🗂️")
-about = st.Page("views/about.py", title="About", icon="✦")
+about = st.Page("views/about.py", title="About", icon="✨")
 
 pg = st.navigation([landing, demo, insights, gallery, about], position="hidden")
 pg.run()
