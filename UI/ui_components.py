@@ -46,6 +46,21 @@ BG_ELEV_2 = "#1E2534"        # soft alternate surface
 BORDER = "#2C3346"           # cool hairline border
 TEXT = "#EEF2F8"             # cool near-white text
 TEXT_DIM = "#98A2B8"
+
+# Confidence-based color system — used by the demo page's prediction card,
+# top-k bars, and any future badge that needs to communicate "how sure".
+CONF_HIGH = "#34D399"    # >90%
+CONF_MID = "#FBBF24"     # 70-90%
+CONF_LOW = "#F87171"     # <70%
+
+
+def confidence_color(pct: float) -> str:
+    """pct is 0-100. Returns the token for that confidence band."""
+    if pct >= 90:
+        return CONF_HIGH
+    if pct >= 70:
+        return CONF_MID
+    return CONF_LOW
 TEXT_FAINT = "#5C6478"
 
 PAGES = [
@@ -99,9 +114,14 @@ def inject_global_css():
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
     h1, h2, h3, h4 {{ font-family: 'Fraunces', serif; }}
 
-    ::-webkit-scrollbar {{ width: 10px; }}
+    ::-webkit-scrollbar {{ width: 12px; height: 12px; }}
     ::-webkit-scrollbar-track {{ background: {BG}; }}
-    ::-webkit-scrollbar-thumb {{ background: {BORDER}; border-radius: 6px; }}
+    ::-webkit-scrollbar-thumb {{
+        background: linear-gradient(180deg, {ACCENT}, {ACCENT_DEEP}); border-radius: 8px;
+        border: 3px solid {BG}; background-clip: padding-box;
+    }}
+    ::-webkit-scrollbar-thumb:hover {{ background: linear-gradient(180deg, {ACCENT_DEEP}, {ACCENT}); background-clip: padding-box; }}
+    * {{ scrollbar-color: {ACCENT} {BG}; scrollbar-width: thin; }}
 
     /* ---- Fresh ambient background, fixed to viewport ---- */
     .aurora-bg {{
@@ -139,47 +159,58 @@ def inject_global_css():
     .section-sub {{ color: {TEXT_DIM}; font-size: 1rem; margin-bottom: 2.5rem; max-width: 620px; line-height: 1.6; }}
 
     .glass-card {{
-        position: relative; background: {BG_ELEV};
+        position: relative; overflow: hidden; background: {BG_ELEV};
         border: 1px solid {BORDER}; border-radius: 20px; padding: 1.75rem;
         box-shadow: 0 10px 28px -14px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255,255,255,.03);
-        transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease;
+        transition: border-color .3s ease, transform .35s cubic-bezier(.22,.9,.32,1.35), box-shadow .35s ease;
     }}
     .glass-card:hover {{
-        border-color: {ACCENT}88; transform: translateY(-4px);
-        box-shadow: 0 22px 46px -16px {ACCENT}3D, inset 0 1px 0 rgba(255,255,255,.04);
+        border-color: {ACCENT}88; transform: translateY(-6px) scale(1.012);
+        box-shadow: 0 24px 50px -16px {ACCENT}40, inset 0 1px 0 rgba(255,255,255,.04);
     }}
+    /* CSS-only "sheen" sweep — a fixed diagonal highlight that crosses the
+       card on hover. This substitutes for a true cursor-tracked spotlight,
+       which would need live mouse coordinates that plain CSS can't read;
+       see the feasibility note in inject_global_css's docstring. */
+    .glass-card::after {{
+        content: ""; position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
+        background: linear-gradient(120deg, transparent, {ACCENT}1F, {ACCENT_DEEP}14, transparent);
+        transform: skewX(-18deg); transition: left .75s cubic-bezier(.2,.7,.3,1); pointer-events: none;
+    }}
+    .glass-card:hover::after {{ left: 130%; }}
 
     .accent-btn {{
         display: inline-block; background: {GRADIENT}; color: #FFFBF3 !important;
         font-family: 'Inter', sans-serif; font-weight: 700; font-size: .95rem;
         padding: .85rem 1.9rem; border-radius: 12px; text-decoration: none !important;
-        box-shadow: 0 10px 26px -8px {ACCENT_DEEP}66; transition: transform .2s ease, box-shadow .2s ease;
+        box-shadow: 0 10px 26px -8px {ACCENT_DEEP}66;
+        transition: transform .3s cubic-bezier(.22,.9,.32,1.35), box-shadow .3s ease;
         border: none;
     }}
-    .accent-btn:hover {{ transform: translateY(-2px); box-shadow: 0 14px 34px -8px {ACCENT_DEEP}88; }}
+    .accent-btn:hover {{ transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 38px -8px {ACCENT_DEEP}99; }}
     .ghost-btn {{
         display: inline-block; background: {BG_ELEV}CC; color: {TEXT} !important;
         font-family: 'Inter', sans-serif; font-weight: 600; font-size: .95rem;
         padding: .82rem 1.85rem; border-radius: 12px; text-decoration: none !important;
-        border: 1.5px solid {BORDER}; transition: border-color .2s ease, color .2s ease;
+        border: 1.5px solid {BORDER}; transition: border-color .2s ease, color .2s ease, transform .3s cubic-bezier(.22,.9,.32,1.35);
         backdrop-filter: blur(6px);
     }}
-    .ghost-btn:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; }}
+    .ghost-btn:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; transform: translateY(-2px); }}
 
     .chip {{
         display: inline-block; background: {BG_ELEV_2}; border: 1px solid {BORDER};
         color: {TEXT_DIM}; font-size: .8rem; padding: .38rem .9rem; border-radius: 999px;
         margin: .2rem; transition: all .2s ease;
     }}
-    .chip:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; background: {ACCENT}12; }}
+    .chip:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; background: {ACCENT}12; transform: translateY(-1px); }}
 
     /* Native Streamlit buttons restyled to match custom nav / CTAs */
     div[data-testid="stButton"] > button {{
         background: {BG_ELEV}; color: {TEXT}; border: 1.5px solid {BORDER}; border-radius: 10px;
         font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
-        padding: .5rem 1.1rem; transition: all .2s ease;
+        padding: .5rem 1.1rem; transition: all .25s cubic-bezier(.22,.9,.32,1.35);
     }}
-    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; }}
+    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; transform: translateY(-2px) scale(1.02); }}
     div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; }}
 
     .nav-active > button {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}
@@ -207,6 +238,35 @@ def inject_global_css():
 
     .fade-in {{ animation: fadeUp .7s ease both; }}
     @keyframes fadeUp {{ from {{ opacity:0; transform: translateY(14px); }} to {{ opacity:1; transform: translateY(0); }} }}
+
+    /* ---- Scroll-driven reveal (CSS-only, no JS/IntersectionObserver) ----
+       animation-timeline: view() ties the animation's progress directly to
+       the element's position in the scrollport. Falls back to a plain
+       one-shot fade-in on mount for browsers that don't support it yet
+       (Chrome/Edge 115+ and current Firefox do). */
+    .reveal-up {{ opacity: 0; transform: translateY(24px); animation: fadeUp .7s ease both; }}
+    @supports (animation-timeline: view()) {{
+        .reveal-up {{
+            animation: revealUp linear both;
+            animation-timeline: view();
+            animation-range: entry 0% cover 30%;
+        }}
+        @keyframes revealUp {{
+            from {{ opacity: 0; transform: translateY(36px) scale(.97); }}
+            to   {{ opacity: 1; transform: translateY(0) scale(1); }}
+        }}
+    }}
+    /* Stagger children of a reveal group without JS, using animation-delay
+       on nth-child — apply .reveal-group to a row of columns' parent and
+       .reveal-up to each card inside for a staggered cascade. */
+    .reveal-group > div:nth-child(1) .reveal-up {{ animation-delay: 0s; }}
+    .reveal-group > div:nth-child(2) .reveal-up {{ animation-delay: .08s; }}
+    .reveal-group > div:nth-child(3) .reveal-up {{ animation-delay: .16s; }}
+    .reveal-group > div:nth-child(4) .reveal-up {{ animation-delay: .24s; }}
+
+    /* ---- Page/section mount transition ---- */
+    .section {{ animation: sectionIn .5s ease both; }}
+    @keyframes sectionIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
     </style>
     <div class="aurora-bg">
     <div class="aurora-blob blob-a"></div>

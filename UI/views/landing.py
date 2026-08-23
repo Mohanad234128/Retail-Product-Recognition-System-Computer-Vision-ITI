@@ -4,10 +4,23 @@ views/landing.py
 The landing page is deliberately nav-free and immersive — it's the "wow"
 moment before the person ever sees the app's internal navigation. All
 motion here is pure CSS (background from ui_components, grid sweep,
-self-drawing bounding boxes, an animated accuracy ring) so nothing here
-depends on JS execution inside an iframe — which matters because the
-CTA buttons below need to be real, native Streamlit buttons wired to
-st.switch_page, sitting in the same document flow as the animation.
+drifting bounding boxes, an animated accuracy ring, an auto-cycling
+sample strip) so nothing here depends on JS execution inside an iframe —
+which matters because the CTA buttons below need to be real, native
+Streamlit buttons wired to st.switch_page, sitting in the same document
+flow as the animation.
+
+FEASIBILITY NOTE — no true mouse-tracked parallax here on purpose:
+real parallax driven by cursor position needs a JS mousemove listener
+with access to the whole page, but <script> tags inside st.markdown
+never execute (browsers don't run scripts inserted via innerHTML), and
+components.html's JS is sandboxed inside its own iframe, away from this
+page's DOM. Instead, the grid, floating emoji, and bounding boxes each
+drift on independent, differently-timed CSS animations — a "layers
+moving at different speeds" illusion of depth without real cursor
+tracking. If you want genuine mouse-tracked parallax later, it's
+possible via a fragile same-origin iframe hack; flagged, not built,
+since I can't test real mouse interaction in my sandbox.
 
 NOTE on a real bug this file used to have: Streamlit's markdown parser
 treats a blank line followed by a 4+-space-indented line as an indented
@@ -32,10 +45,15 @@ st.markdown(f"""
     padding: 2.5rem 1.5rem 1rem 1.5rem;
   }}
   .grid-bg {{
-    position: absolute; inset: 0;
+    position: absolute; inset: -5%;
     background-image: linear-gradient({ui.BORDER} 1px, transparent 1px), linear-gradient(90deg, {ui.BORDER} 1px, transparent 1px);
     background-size: 46px 46px; opacity: .35;
     mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 90%);
+    animation: gridDrift 34s ease-in-out infinite;
+  }}
+  @keyframes gridDrift {{
+    0%, 100% {{ translate: 0 0; }}
+    50% {{ translate: -18px 12px; }}
   }}
   .scan-line {{
     position: absolute; left: 0; width: 100%; height: 2px;
@@ -44,18 +62,29 @@ st.markdown(f"""
   }}
   @keyframes scan {{ 0% {{ top:6%; opacity:0; }} 10% {{ opacity:1; }} 90% {{ opacity:1; }} 100% {{ top:88%; opacity:0; }} }}
 
-  /* Simple static bounding-box frames — one fixed color each, no animation
-     or color-cycling. They fade in once, then just sit there quietly. */
-  .bbox {{ position: absolute; border: 2px solid; border-radius: 10px; opacity: 0; background: transparent;
-    animation: bboxIn .9s ease forwards; }}
+  /* Bounding boxes now drift continuously along a slow organic path — like
+     they're actively tracking something — instead of fading in and sitting
+     still. `scale`/`translate`/`rotate` are used as independent CSS
+     properties (not the shorthand `transform`) so the one-time entrance
+     animation and the infinite drift animation can run together without
+     one overwriting the other. */
+  .bbox {{ position: absolute; border: 2px solid; border-radius: 10px; opacity: 0; background: transparent; scale: 1.06; }}
   .bbox span {{ position: absolute; top: -1.6rem; left: 0; font-size: .68rem; color: {ui.TEXT};
     background: {ui.BG_ELEV}; padding: 3px 8px; border: 1px solid {ui.BORDER}; border-radius: 5px; white-space: nowrap;
     font-family: 'Fraunces', serif; font-weight: 600; }}
-  @keyframes bboxIn {{ 0% {{ opacity:0; transform: scale(1.06); }} 100% {{ opacity:1; transform: scale(1); }} }}
-  .b1 {{ top: 14%; left: 8%; width: 140px; height: 105px; border-color: {ui.ACCENT}; box-shadow: 0 0 16px {ui.ACCENT}44; animation-delay: .3s; }}
-  .b2 {{ top: 58%; left: 76%; width: 115px; height: 88px; border-color: {ui.ACCENT_BLUE}; box-shadow: 0 0 16px {ui.ACCENT_BLUE}44; animation-delay: 1.1s; }}
-  .b3 {{ top: 10%; left: 70%; width: 96px; height: 96px; border-color: {ui.ACCENT_YELLOW}; box-shadow: 0 0 16px {ui.ACCENT_YELLOW}44; animation-delay: 1.9s; }}
-  .b4 {{ top: 66%; left: 14%; width: 110px; height: 82px; border-color: {ui.ACCENT_PURPLE}; box-shadow: 0 0 16px {ui.ACCENT_PURPLE}44; animation-delay: 2.6s; }}
+  @keyframes bboxFade {{ from {{ opacity: 0; scale: 1.06; }} to {{ opacity: 1; scale: 1; }} }}
+  @keyframes bboxDrift1 {{ 0%,100% {{ translate: 0 0 rotate(0deg); }} 30% {{ translate: 10px -8px; }} 60% {{ translate: -6px 6px; }} 85% {{ translate: 5px 4px; }} }}
+  @keyframes bboxDrift2 {{ 0%,100% {{ translate: 0 0; }} 35% {{ translate: -9px 7px; }} 65% {{ translate: 7px -5px; }} }}
+  @keyframes bboxDrift3 {{ 0%,100% {{ translate: 0 0; }} 40% {{ translate: 6px 9px; }} 70% {{ translate: -8px -4px; }} }}
+  @keyframes bboxDrift4 {{ 0%,100% {{ translate: 0 0; }} 25% {{ translate: -7px -6px; }} 55% {{ translate: 8px 5px; }} 80% {{ translate: -4px 7px; }} }}
+  .b1 {{ top: 14%; left: 8%; width: 140px; height: 105px; border-color: {ui.ACCENT}; box-shadow: 0 0 16px {ui.ACCENT}44;
+    animation: bboxFade .9s ease .3s forwards, bboxDrift1 9s ease-in-out .3s infinite; }}
+  .b2 {{ top: 58%; left: 76%; width: 115px; height: 88px; border-color: {ui.ACCENT_BLUE}; box-shadow: 0 0 16px {ui.ACCENT_BLUE}44;
+    animation: bboxFade .9s ease 1.1s forwards, bboxDrift2 11s ease-in-out 1.1s infinite; }}
+  .b3 {{ top: 10%; left: 70%; width: 96px; height: 96px; border-color: {ui.ACCENT_YELLOW}; box-shadow: 0 0 16px {ui.ACCENT_YELLOW}44;
+    animation: bboxFade .9s ease 1.9s forwards, bboxDrift3 8s ease-in-out 1.9s infinite; }}
+  .b4 {{ top: 66%; left: 14%; width: 110px; height: 82px; border-color: {ui.ACCENT_PURPLE}; box-shadow: 0 0 16px {ui.ACCENT_PURPLE}44;
+    animation: bboxFade .9s ease 2.6s forwards, bboxDrift4 10s ease-in-out 2.6s infinite; }}
 
   .hero-inner {{
     position: relative; z-index: 5; display: flex; align-items: center; justify-content: center;
@@ -75,13 +104,37 @@ st.markdown(f"""
   .sub {{ color: {ui.TEXT_DIM}; font-size: .98rem; line-height: 1.65; margin: 0 0 1.8rem 0; max-width: 46ch; }}
 
   .stat-row {{ display: flex; gap: 1.8rem; flex-wrap: wrap; }}
-  .stat {{ text-align: left; }}
+  .stat {{ text-align: left; opacity: 0; animation: fadeUp .6s ease both; }}
   .stat b {{ display: block; font-size: 1.35rem; background: {ui.GRADIENT}; -webkit-background-clip: text;
     background-clip: text; color: transparent; font-family: 'Fraunces', serif; }}
   .stat span {{ font-size: .7rem; color: {ui.TEXT_FAINT}; text-transform: uppercase; letter-spacing: .07em; }}
+  .stat:nth-child(1) {{ animation-delay: .5s; }}
+  .stat:nth-child(2) {{ animation-delay: .62s; }}
+  .stat:nth-child(3) {{ animation-delay: .74s; }}
+  @keyframes fadeUp {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
 
-  .ring-wrap {{ position: relative; width: 200px; height: 200px; flex-shrink: 0; }}
-  .ring-wrap svg {{ transform: rotate(-90deg); }}
+  /* Accuracy ring, now with a second, faster, thinner "scanner" arc
+     spinning behind it plus a pulse loosely timed to the bbox reveals. */
+  .ring-wrap {{ position: relative; width: 200px; height: 200px; flex-shrink: 0;
+    animation: ringPulse 3.2s ease-in-out infinite; }}
+  @keyframes ringPulse {{
+    0%, 100% {{ scale: 1; }}
+    9% {{ scale: 1.035; }}
+    12% {{ scale: 1; }}
+    34% {{ scale: 1.035; }}
+    38% {{ scale: 1; }}
+    59% {{ scale: 1.035; }}
+    63% {{ scale: 1; }}
+    81% {{ scale: 1.035; }}
+    85% {{ scale: 1; }}
+  }}
+  .ring-wrap svg {{ transform: rotate(-90deg); position: absolute; inset: 0; }}
+  .ring-scanner {{
+    fill: none; stroke: {ui.ACCENT}; stroke-width: 2; stroke-linecap: round;
+    stroke-dasharray: 18 100; opacity: .8; filter: drop-shadow(0 0 6px {ui.ACCENT}); transform-origin: center;
+    animation: spinScanner 2.4s linear infinite;
+  }}
+  @keyframes spinScanner {{ to {{ transform: rotate(270deg); }} }}
   .ring-track {{ fill: none; stroke: {ui.BORDER}; stroke-width: 10; }}
   .ring-fill {{
     fill: none; stroke: url(#ringGradient); stroke-width: 10; stroke-linecap: round;
@@ -99,15 +152,39 @@ st.markdown(f"""
     margin-top: 1.5rem; animation: bob 2s ease-in-out infinite; text-align: center; }}
   @keyframes bob {{ 0%,100% {{ transform: translateY(0); }} 50% {{ transform: translateY(6px); }} }}
 
-  .float-emoji {{ position: absolute; font-size: 2rem; opacity: .4; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
-    animation: floaty 7s ease-in-out infinite; }}
-  @keyframes floaty {{ 0%,100% {{ transform: translateY(0) rotate(-4deg); }} 50% {{ transform: translateY(-22px) rotate(5deg); }} }}
-  .fe1 {{ top: 6%; left: 22%; animation-delay: .2s; font-size: 2.2rem; }}
-  .fe2 {{ top: 20%; right: 8%; animation-delay: 1.4s; font-size: 1.8rem; }}
-  .fe3 {{ bottom: 10%; left: 5%; animation-delay: 2.1s; font-size: 2rem; }}
-  .fe4 {{ bottom: 18%; right: 20%; animation-delay: .8s; font-size: 1.6rem; }}
-  .fe5 {{ top: 46%; left: 2%; animation-delay: 3s; font-size: 1.5rem; opacity: .3; }}
-  .fe6 {{ top: 3%; right: 28%; animation-delay: 1.8s; font-size: 1.4rem; opacity: .34; }}
+  /* Float-emoji durations diversified so each reads as its own depth layer. */
+  .float-emoji {{ position: absolute; font-size: 2rem; opacity: .4; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }}
+  @keyframes floaty {{ 0%,100% {{ translate: 0 0; rotate: -4deg; }} 50% {{ translate: 0 -22px; rotate: 5deg; }} }}
+  .fe1 {{ top: 6%; left: 22%; font-size: 2.2rem; animation: floaty 6s ease-in-out .2s infinite; }}
+  .fe2 {{ top: 20%; right: 8%; font-size: 1.8rem; animation: floaty 8.5s ease-in-out 1.4s infinite; }}
+  .fe3 {{ bottom: 10%; left: 5%; font-size: 2rem; animation: floaty 7.2s ease-in-out 2.1s infinite; }}
+  .fe4 {{ bottom: 18%; right: 20%; font-size: 1.6rem; animation: floaty 9.4s ease-in-out .8s infinite; }}
+  .fe5 {{ top: 46%; left: 2%; font-size: 1.5rem; opacity: .3; animation: floaty 10.2s ease-in-out 3s infinite; }}
+  .fe6 {{ top: 3%; right: 28%; font-size: 1.4rem; opacity: .34; animation: floaty 6.8s ease-in-out 1.8s infinite; }}
+
+  /* "Wow" strip — auto-cycling sample tiles above the fold, a trailer for
+     the real Live Demo page. No real images bundled by default, so this
+     uses emoji tiles rather than assuming files exist in assets/samples/. */
+  .wow-strip {{ display: flex; gap: 1rem; overflow-x: auto; padding: .3rem .2rem 1.4rem .2rem; scrollbar-width: none; }}
+  .wow-strip::-webkit-scrollbar {{ display: none; }}
+  .wow-tile {{
+    position: relative; flex: 0 0 108px; height: 108px; border-radius: 16px;
+    background: {ui.BG_ELEV}; border: 1px solid {ui.BORDER}; display: flex;
+    align-items: center; justify-content: center; overflow: hidden;
+  }}
+  .wow-emoji {{ font-size: 2.3rem; filter: drop-shadow(0 4px 8px rgba(0,0,0,.35)); }}
+  .wow-box {{
+    position: absolute; inset: 9px; border: 2px solid var(--tile-accent); border-radius: 10px;
+    opacity: 0; animation: wowBox 4.4s ease-in-out infinite; animation-delay: inherit;
+  }}
+  .wow-label {{
+    position: absolute; bottom: 6px; left: 6px; right: 6px; font-size: .6rem; text-align: center;
+    color: {ui.TEXT}; background: {ui.BG}DD; border-radius: 5px; padding: 2px 4px; opacity: 0;
+    font-family: 'Inter', sans-serif; font-weight: 600; animation: wowLabel 4.4s ease-in-out infinite;
+    animation-delay: inherit;
+  }}
+  @keyframes wowBox {{ 0%, 58%, 100% {{ opacity: 0; scale: 1.05; }} 15%, 45% {{ opacity: 1; scale: 1; }} }}
+  @keyframes wowLabel {{ 0%, 58%, 100% {{ opacity: 0; }} 18%, 45% {{ opacity: 1; }} }}
 </style>
 <div class="hero">
 <div class="grid-bg"></div>
@@ -146,6 +223,7 @@ st.markdown(f"""
 </defs>
 <circle class="ring-track" cx="65" cy="65" r="58"></circle>
 <circle class="ring-fill" cx="65" cy="65" r="58"></circle>
+<circle class="ring-scanner" cx="65" cy="65" r="50"></circle>
 </svg>
 <div class="ring-center">
 <b>94.18%</b>
@@ -173,6 +251,34 @@ with c2:
     )
 
 # ---------------------------------------------------------------------------
+# "Wow" strip — a trailer for the Live Demo, auto-classifying itself on loop
+# ---------------------------------------------------------------------------
+wow_tiles = [
+    ("🍎", "Apple · 0.94", ui.ACCENT),
+    ("🍅", "Tomato · 0.91", ui.ACCENT_TOMATO),
+    ("🥑", "Avocado · 0.88", ui.ACCENT2),
+    ("🌽", "Corn · 0.90", ui.ACCENT_YELLOW),
+    ("🍇", "Grape · 0.87", ui.ACCENT_PURPLE),
+    ("🥕", "Carrot · 0.93", ui.ACCENT_TOMATO),
+    ("🍓", "Strawberry · 0.89", ui.ACCENT),
+    ("🌰", "Almond · 0.86", ui.ACCENT_BLUE),
+]
+tiles_html = ""
+for i, (emoji, label, color) in enumerate(wow_tiles):
+    delay = round(i * 0.45, 2)
+    tiles_html += (
+        f'<div class="wow-tile" style="animation-delay:{delay}s; --tile-accent:{color};">'
+        f'<span class="wow-emoji">{emoji}</span>'
+        f'<div class="wow-box"></div>'
+        f'<div class="wow-label">{label}</div>'
+        f'</div>'
+    )
+st.markdown(
+    f'<div style="padding:0 6vw;"><div class="wow-strip">{tiles_html}</div></div>',
+    unsafe_allow_html=True,
+)
+
+# ---------------------------------------------------------------------------
 # Teaser cards — three doors into the rest of the app
 # ---------------------------------------------------------------------------
 st.markdown('<div class="section">', unsafe_allow_html=True)
@@ -186,10 +292,10 @@ teasers = [
 ]
 
 cols = st.columns(3)
-for col, (icon, title, desc, target, cta) in zip(cols, teasers):
+for i, (col, (icon, title, desc, target, cta)) in enumerate(zip(cols, teasers)):
     with col:
         st.markdown(f"""
-        <div class="glass-card fade-in" style="min-height:230px;">
+        <div class="glass-card reveal-up" style="min-height:230px; animation-delay:{i * 0.1}s;">
           <div style="font-size:1.8rem; margin-bottom:.7rem;">{icon}</div>
           <div style="font-family:'Fraunces',serif; font-weight:700; font-size:1.15rem; margin-bottom:.5rem;">{title}</div>
           <div style="color:{ui.TEXT_DIM}; font-size:.86rem; line-height:1.55; margin-bottom:1rem;">{desc}</div>
