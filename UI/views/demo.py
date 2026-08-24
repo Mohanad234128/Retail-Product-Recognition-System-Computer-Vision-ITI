@@ -4,10 +4,18 @@ views/demo.py
 Live inference page. Looks for model.h5 in the project root, NoteBook/,
 or assets/ (see model_utils.find_model_path). If it's missing, shows a
 clear inline notice instead of crashing — nav and page chrome still work.
+
+Note: there's no artificial time.sleep() here anymore. The "scan, then
+reveal" feel comes entirely from CSS animation-delay staggering across
+three pieces — the vision-scan frame, the prediction card, and the top-k
+bars — that all render in the same script run. Inference itself runs
+immediately; the sequencing is purely visual. This also means a new
+image reruns the script and remounts these elements with fresh content
+each time, so the scan sequence naturally replays for every new
+prediction — which is exactly the behavior we want here.
 """
 
 import os
-import time
 import streamlit as st
 from PIL import Image
 
@@ -99,26 +107,23 @@ else:
         st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
         img_col, result_col = st.columns([1, 1.3])
 
-        with img_col:
-            st.image(chosen_image, caption=chosen_source, use_column_width=True)
-            placeholder = st.empty()
-            with placeholder:
-                ui.scanning_overlay_note()
-            time.sleep(0.6)  # brief, deliberate pause so the scan animation reads as real work
-            placeholder.empty()
-
+        # Inference runs immediately — no artificial delay. The visual
+        # "scan, then reveal" sequencing below is entirely animation-delay.
         results = predict_top_k(model, chosen_image, k=5)
+
+        with img_col:
+            ui.vision_scan_frame(chosen_image, caption=chosen_source, scan_delay=0.0)
 
         with result_col:
             top_raw, top_disp, top_conf = results[0]
-            ui.prediction_card(top_disp, top_raw, top_conf)
+            ui.prediction_card(top_disp, top_raw, top_conf, reveal_delay=1.9)
 
         st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
         st.markdown(
             f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; margin-bottom:.6rem;">Top-5 predictions</div>',
             unsafe_allow_html=True,
         )
-        ui.top_k_bars(results)
+        ui.top_k_bars(results, reveal_delay=2.2)
     else:
         st.markdown(
             f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; padding:2rem 0;">'
