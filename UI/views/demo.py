@@ -38,10 +38,18 @@ model_path = find_model_path()
 model = None
 model_load_error = None
 if model_path:
+    # Shown only while the model is actually loading — @st.cache_resource
+    # means this is a real, visible delay only on the very first cold load
+    # (deserializing an 82M-parameter model can take a few seconds);
+    # cached reruns clear it almost instantly.
+    loading_placeholder = st.empty()
+    with loading_placeholder:
+        ui.skeleton_block(height_px=52)
     try:
         model = load_prediction_model(model_path)
     except Exception as e:  # noqa: BLE001 - surface any load failure to the UI
         model_load_error = str(e)
+    loading_placeholder.empty()
 
 if model is None:
     st.markdown(f"""

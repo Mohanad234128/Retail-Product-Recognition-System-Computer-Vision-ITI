@@ -293,6 +293,16 @@ def inject_global_css():
     /* ---- Page/section mount transition ---- */
     .section {{ animation: sectionIn .5s ease both; }}
     @keyframes sectionIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+
+    /* ---- Shimmer skeleton, for the one real load-delay in the app
+       (first cold load of model.h5). Shimmer, not a spinner. ---- */
+    .skeleton {{ position: relative; overflow: hidden; background: {BG_ELEV}; border: 1px solid {BORDER}; border-radius: 14px; }}
+    .skeleton::after {{
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, {BORDER}, transparent);
+        transform: translateX(-100%); animation: shimmer 1.4s ease-in-out infinite;
+    }}
+    @keyframes shimmer {{ to {{ transform: translateX(100%); }} }}
     </style>
     <div class="aurora-bg">
     <div class="aurora-blob blob-a"></div>
@@ -305,8 +315,29 @@ def inject_global_css():
     """, unsafe_allow_html=True)
 
 
+def skeleton_block(height_px: int = 60, radius_px: int = 14):
+    """A shimmering placeholder for the one real load-delay in the app —
+    the first cold load of model.h5 (a few seconds before @st.cache_resource
+    kicks in for subsequent reruns). Meant to be shown via st.empty() and
+    cleared once the real content is ready."""
+    st.markdown(
+        f'<div class="skeleton" style="height:{height_px}px; border-radius:{radius_px}px;"></div>',
+        unsafe_allow_html=True,
+    )
+
+
 def top_nav(active: str):
-    """Custom glass top nav bar. `active` is the page filename, e.g. 'demo.py'."""
+    """Custom glass top nav bar. `active` is the page filename, e.g. 'demo.py'.
+
+    Uses st.page_link — Streamlit's own purpose-built widget for linking to
+    another registered st.Page — instead of a manually-detected st.button
+    click + st.switch_page(). The earlier button-based approach had a
+    reported bug (clicking "About" navigated to "Live Demo" instead) that
+    I couldn't pin to a specific line via static review; rather than keep
+    guessing at a hand-rolled mechanism, this switches to the mechanism
+    Streamlit ships specifically for this exact use case, which sidesteps
+    whatever the exact root cause was.
+    """
     st.markdown(f"""
     <style>
       .nav-wrap {{
@@ -316,6 +347,20 @@ def top_nav(active: str):
       }}
       .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT}; }}
       .nav-brand span {{ background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; }}
+      /* Restyle st.page_link to match the app's button language */
+      div[data-testid="stPageLink"] {{ width: 100%; }}
+      div[data-testid="stPageLink"] a {{
+        display: flex; align-items: center; justify-content: center; gap: .4rem; width: 100%;
+        background: {BG_ELEV}; color: {TEXT} !important; border: 1.5px solid {BORDER}; border-radius: 10px;
+        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
+        padding: .5rem 1.1rem; text-decoration: none !important;
+        transition: all .25s cubic-bezier(.22,.9,.32,1.35);
+      }}
+      div[data-testid="stPageLink"] a:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
+      div[data-testid="stPageLink"] a p {{ color: inherit !important; font-weight: 600 !important; }}
+      .nav-active div[data-testid="stPageLink"] a {{
+        border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important;
+      }}
     </style>
     <div class="nav-wrap">
       <div class="nav-brand">🧺 Harvest<span>Vision</span></div>
@@ -327,15 +372,11 @@ def top_nav(active: str):
     for col, (path, label, icon) in zip(cols, PAGES):
         is_active = path.endswith(active)
         with col:
-            wrapper = st.container()
-            with wrapper:
-                if is_active:
-                    st.markdown('<div class="nav-active">', unsafe_allow_html=True)
-                clicked = st.button(f"{icon} {label}", key=f"nav_{path}", use_container_width=True)
-                if is_active:
-                    st.markdown('</div>', unsafe_allow_html=True)
-            if clicked and not is_active:
-                st.switch_page(path)
+            if is_active:
+                st.markdown('<div class="nav-active">', unsafe_allow_html=True)
+            st.page_link(path, label=label, icon=icon, use_container_width=True)
+            if is_active:
+                st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<div style='height:.5rem;'></div>", unsafe_allow_html=True)
 
 
@@ -427,7 +468,7 @@ def top_k_bars(results, reveal_delay: float = 1.6):
         pct = round(conf * 100, 2)
         color = confidence_color(pct)
         delay = round(reveal_delay + i * 0.12, 2)
-        rows += f"""
+        bar_html = f"""
         <div style="margin-bottom:.9rem;">
           <div style="display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:.3rem;">
             <span style="color:{TEXT};">#{i+1} {disp}</span>
@@ -438,6 +479,10 @@ def top_k_bars(results, reveal_delay: float = 1.6):
           </div>
         </div>
         """
+        # .strip() prevents the same blank-line-becomes-code-block bug as
+        # class_showcase above — without it, bars after the first render
+        # as literal text instead of HTML.
+        rows += bar_html.strip()
     st.markdown(f"""
     <style>
     .bar-fill {{ height: 100%; width: 0%; border-radius: 999px;
@@ -530,10 +575,10 @@ def pipeline_steps():
         ("05", "Prediction", "argmax gives the top class; the full softmax vector powers the top-k confidence ranking."),
     ]
     cols = st.columns(len(steps))
-    for col, (num, title, desc) in zip(cols, steps):
+    for i, (col, (num, title, desc)) in enumerate(zip(cols, steps)):
         with col:
             st.markdown(f"""
-            <div class="glass-card fade-in" style="min-height:230px;">
+            <div class="glass-card reveal-up" style="min-height:230px; animation-delay:{i * 0.08}s;">
               <div style="background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent;
                           font-family:'Fraunces',serif; font-size:1.4rem; font-weight:700; margin-bottom:.6rem;">{num}</div>
               <div style="font-family:'Fraunces',serif; font-weight:600; margin-bottom:.5rem;">{title}</div>
@@ -549,10 +594,10 @@ def insight_callouts():
         ("What's next", "Roadmap: more epochs, a confusion matrix to find per-class weak spots, and a MobileNetV2 transfer-learning comparison for a lighter, faster model."),
     ]
     cols = st.columns(3)
-    for col, (title, desc) in zip(cols, insights):
+    for i, (col, (title, desc)) in enumerate(zip(cols, insights)):
         with col:
             st.markdown(f"""
-            <div class="glass-card fade-in">
+            <div class="glass-card reveal-up" style="animation-delay:{i * 0.1}s;">
               <div style="font-family:'Fraunces',serif; color:{ACCENT}; font-weight:600; margin-bottom:.5rem;">{title}</div>
               <div style="color:{TEXT_DIM}; font-size:.85rem; line-height:1.55;">{desc}</div>
             </div>
@@ -578,7 +623,7 @@ def class_showcase(groups: dict):
         emoji = produce_emoji(cat)
         chip_html = "".join(f'<span class="chip">{n}</span>' for n in names[:6])
         more = f'<span class="chip">+{len(names)-6} more</span>' if len(names) > 6 else ""
-        cards += f"""
+        card_html = f"""
         <div class="glass-card tilt-card fade-in">
           <div style="font-family:'Fraunces',serif; font-weight:600; color:{TEXT}; margin-bottom:.6rem; font-size:1.05rem;">
             {emoji} {cat} <span style="color:{TEXT_DIM}; font-weight:400; font-size:.8rem;">({len(names)} variant{'s' if len(names) != 1 else ''})</span>
@@ -586,6 +631,11 @@ def class_showcase(groups: dict):
           <div>{chip_html}{more}</div>
         </div>
         """
+        # .strip() is essential here: without it, concatenating multiple
+        # blocks leaves a whitespace-only line between each card, which
+        # Streamlit's markdown parser reads as "blank line followed by an
+        # indented line" and renders as literal code text instead of HTML.
+        cards += card_html.strip()
     st.markdown(f"""
     <style>
     .tilt-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }}
@@ -616,9 +666,9 @@ def footer_section():
 
     st.markdown(f"""
     <div style="border-top:1px solid {BORDER}; padding:3rem 6vw; text-align:center; margin-top:2rem;">
-      <div class="section-label">Retail Product Recognition System</div>
+      <div class="section-label">HarvestVision</div>
       <p style="color:{TEXT_DIM}; font-size:.85rem; margin:.8rem 0 1.2rem 0;">
-        A graduation project from the ITI Computer Vision track.
+        The showcase for Retail Product Recognition System — a graduation project from the ITI Computer Vision track.
       </p>
       <div style="margin-bottom:1.5rem;">{team_html}</div>
       <a class="ghost-btn" href="https://github.com/Yasser-Mogahed/Retail-Product-Recognition-System-Computer-Vision-ITI" target="_blank">
