@@ -37,10 +37,10 @@ st.markdown('<div class="section-title" style="font-size:1.6rem;">Built by</div>
 
 team = [
     ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
-    ("Abdallah Ali", None),
-    ("Mohanad Ibrahim", None),
-    ("Faisal Abdulaziz", None),
-    ("Marawan Mohamed", None),
+    ("Abdallah Ali", "https://github.com/abdallah-farahat"),
+    ("Mohanad Ibrahim", "https://github.com/Mohanad234128"),
+    ("Faisal Abdulaziz", "https://github.com/Wttcss"),
+    ("Marawan Mohamed", "https://github.com/luka666-grim"),
 ]
 cols = st.columns(len(team))
 for i, (col, (name, link)) in enumerate(zip(cols, team)):
