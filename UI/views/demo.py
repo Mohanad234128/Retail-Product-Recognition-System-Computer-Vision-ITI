@@ -118,12 +118,12 @@ else:
         # Inference runs immediately — no artificial delay. The visual
         # "scan, then reveal" sequencing below is entirely animation-delay.
         results = predict_top_k(model, chosen_image, k=5)
+        top_raw, top_disp, top_conf = results[0]
 
         with img_col:
             ui.vision_scan_frame(chosen_image, caption=chosen_source, scan_delay=0.0)
 
         with result_col:
-            top_raw, top_disp, top_conf = results[0]
             ui.prediction_card(top_disp, top_raw, top_conf, reveal_delay=1.9)
 
         st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
@@ -132,6 +132,47 @@ else:
             unsafe_allow_html=True,
         )
         ui.top_k_bars(results, reveal_delay=2.2)
+
+        # Copy-able result — st.code ships its own native copy button, so
+        # this needs no custom clipboard JS (which wouldn't reliably run
+        # inside st.markdown anyway).
+        result_lines = [f"Prediction: {top_disp} ({round(top_conf * 100, 2)}% confidence)", "Top-5:"]
+        for i, (_, disp, conf) in enumerate(results):
+            result_lines.append(f"{i + 1}. {disp} — {round(conf * 100, 2)}%")
+        st.markdown(
+            f'<div style="color:{ui.TEXT_DIM}; font-size:.8rem; margin:1.2rem 0 .4rem 0;">Copy this result:</div>',
+            unsafe_allow_html=True,
+        )
+        st.code("\n".join(result_lines), language=None)
+
+        # Session-only prediction history — a lightweight sense of
+        # continuity across a demo session, without persisting anything.
+        # Guarded against re-appending the same result on unrelated
+        # reruns (e.g. clicking something elsewhere on the page).
+        history_key = f"{chosen_source}:{top_disp}:{round(top_conf, 4)}"
+        if st.session_state.get("_last_history_key") != history_key:
+            st.session_state.setdefault("prediction_history", [])
+            st.session_state["prediction_history"].insert(0, {
+                "emoji": ui.produce_emoji(top_disp.split(" ")[0].capitalize()),
+                "label": top_disp,
+                "confidence": round(top_conf * 100, 1),
+            })
+            st.session_state["prediction_history"] = st.session_state["prediction_history"][:6]
+            st.session_state["_last_history_key"] = history_key
+
+        history = st.session_state.get("prediction_history", [])
+        if len(history) > 1:
+            chips = "".join(
+                f'<span class="chip">{h["emoji"]} {h["label"]} · {h["confidence"]}%</span>'
+                for h in history
+            )
+            st.markdown(
+                f'<div style="margin-top:1.6rem;">'
+                f'<div style="color:{ui.TEXT_FAINT}; font-size:.75rem; text-transform:uppercase; '
+                f'letter-spacing:.06em; margin-bottom:.5rem;">This session</div>'
+                f'<div>{chips}</div></div>',
+                unsafe_allow_html=True,
+            )
     else:
         st.markdown(
             f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; padding:2rem 0;">'

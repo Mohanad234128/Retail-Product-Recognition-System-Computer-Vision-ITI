@@ -44,17 +44,24 @@ st.markdown(f"""
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 2.5rem 1.5rem 1rem 1.5rem;
   }}
-  .grid-bg {{
-    position: absolute; inset: -5%;
-    background-image: linear-gradient({ui.BORDER} 1px, transparent 1px), linear-gradient(90deg, {ui.BORDER} 1px, transparent 1px);
-    background-size: 46px 46px; opacity: .35;
-    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 40%, transparent 90%);
-    animation: gridDrift 34s ease-in-out infinite;
+  .starfield {{
+    position: absolute; inset: -10%; opacity: .5; pointer-events: none;
+    background-image:
+      radial-gradient(1.6px 1.6px at 18% 28%, {ui.TEXT_DIM}CC, transparent),
+      radial-gradient(1.2px 1.2px at 62% 68%, {ui.TEXT_DIM}99, transparent),
+      radial-gradient(1.6px 1.6px at 82% 18%, {ui.ACCENT}CC, transparent),
+      radial-gradient(1.2px 1.2px at 32% 82%, {ui.ACCENT_BLUE}AA, transparent),
+      radial-gradient(1.6px 1.6px at 48% 46%, {ui.TEXT_DIM}88, transparent),
+      radial-gradient(1.2px 1.2px at 92% 58%, {ui.ACCENT_YELLOW}AA, transparent),
+      radial-gradient(1.6px 1.6px at 8% 58%, {ui.TEXT_DIM}AA, transparent),
+      radial-gradient(1.2px 1.2px at 72% 8%, {ui.ACCENT_PURPLE}AA, transparent),
+      radial-gradient(1.4px 1.4px at 40% 12%, {ui.TEXT_DIM}88, transparent),
+      radial-gradient(1.2px 1.2px at 55% 92%, {ui.ACCENT2}99, transparent);
+    mask-image: radial-gradient(ellipse 72% 62% at 50% 40%, black 45%, transparent 92%);
+    animation: starDrift 50s ease-in-out infinite alternate, starTwinkle 4s ease-in-out infinite alternate;
   }}
-  @keyframes gridDrift {{
-    0%, 100% {{ translate: 0 0; }}
-    50% {{ translate: -18px 12px; }}
-  }}
+  @keyframes starDrift {{ from {{ translate: 0 0; }} to {{ translate: -26px 18px; }} }}
+  @keyframes starTwinkle {{ from {{ opacity: .38; }} to {{ opacity: .62; }} }}
   .scan-line {{
     position: absolute; left: 0; width: 100%; height: 2px;
     background: linear-gradient(90deg, transparent, {ui.ACCENT}, {ui.ACCENT_DEEP}, transparent);
@@ -100,7 +107,12 @@ st.markdown(f"""
     font-weight: 700; margin-bottom: .9rem; font-family: 'Inter', sans-serif; }}
   .headline {{ font-size: clamp(1.7rem, 2.6vw + 1rem, 2.5rem); font-weight: 600; color: {ui.TEXT}; line-height: 1.28;
     margin: 0 0 1rem 0; letter-spacing: -.01em; }}
-  .headline .grad {{ background: {ui.GRADIENT}; -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }}
+  .headline .grad {{
+    background: linear-gradient(90deg, {ui.ACCENT}, {ui.ACCENT_YELLOW}, {ui.ACCENT2}, {ui.ACCENT_DEEP}, {ui.ACCENT});
+    background-size: 300% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 700; animation: shimmerText 6s ease-in-out infinite;
+  }}
+  @keyframes shimmerText {{ 0%, 100% {{ background-position: 0% 50%; }} 50% {{ background-position: 100% 50%; }} }}
   .sub {{ color: {ui.TEXT_DIM}; font-size: .98rem; line-height: 1.65; margin: 0 0 1.8rem 0; max-width: 46ch; }}
 
   .stat-row {{ display: flex; gap: 1.8rem; flex-wrap: wrap; }}
@@ -148,6 +160,16 @@ st.markdown(f"""
   .ring-center b {{ font-family: 'Fraunces', serif; font-size: 1.9rem; font-weight: 700; color: {ui.TEXT}; line-height: 1; }}
   .ring-center span {{ font-size: .66rem; color: {ui.TEXT_DIM}; text-transform: uppercase; letter-spacing: .07em; margin-top: .35rem; }}
 
+  /* Orbiting produce icons circling the accuracy ring — a signature
+     "no one could imagine" flourish for the hero's focal point. */
+  .orbit {{ position: absolute; inset: -45px; animation: orbitSpin 24s linear infinite; }}
+  @keyframes orbitSpin {{ to {{ transform: rotate(360deg); }} }}
+  .orbit-item {{
+    position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; margin: -14px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,.45));
+  }}
+
   .scroll-cue {{ color: {ui.TEXT_FAINT}; font-size: .7rem; letter-spacing: .15em; text-transform: uppercase;
     margin-top: 1.5rem; animation: bob 2s ease-in-out infinite; text-align: center; }}
   @keyframes bob {{ 0%,100% {{ transform: translateY(0); }} 50% {{ transform: translateY(6px); }} }}
@@ -185,9 +207,20 @@ st.markdown(f"""
   }}
   @keyframes wowBox {{ 0%, 58%, 100% {{ opacity: 0; scale: 1.05; }} 15%, 45% {{ opacity: 1; scale: 1; }} }}
   @keyframes wowLabel {{ 0%, 58%, 100% {{ opacity: 0; }} 18%, 45% {{ opacity: 1; }} }}
+
+  @media (max-width: 900px) {{
+    .hero-inner {{ flex-direction: column; text-align: center; gap: 2.2rem; }}
+    .hero-text {{ text-align: center; max-width: 100%; }}
+    .stat-row {{ justify-content: center; }}
+  }}
+  @media (max-width: 480px) {{
+    .ring-wrap {{ width: 160px; height: 160px; }}
+    .ring-wrap svg {{ width: 160px; height: 160px; }}
+    .orbit {{ display: none; }}
+  }}
 </style>
 <div class="hero">
-<div class="grid-bg"></div>
+<div class="starfield"></div>
 <div class="scan-line"></div>
 <div class="bbox b1"><span>🍎 apple · 0.94</span></div>
 <div class="bbox b2"><span>🍅 tomato · 0.91</span></div>
@@ -212,6 +245,14 @@ st.markdown(f"""
 </div>
 </div>
 <div class="ring-wrap">
+<div class="orbit">
+<span class="orbit-item" style="transform: rotate(0deg) translate(135px) rotate(0deg);">🍊</span>
+<span class="orbit-item" style="transform: rotate(60deg) translate(135px) rotate(-60deg);">🍇</span>
+<span class="orbit-item" style="transform: rotate(120deg) translate(135px) rotate(-120deg);">🥕</span>
+<span class="orbit-item" style="transform: rotate(180deg) translate(135px) rotate(-180deg);">🍓</span>
+<span class="orbit-item" style="transform: rotate(240deg) translate(135px) rotate(-240deg);">🌽</span>
+<span class="orbit-item" style="transform: rotate(300deg) translate(135px) rotate(-300deg);">🥝</span>
+</div>
 <svg width="200" height="200" viewBox="0 0 130 130">
 <defs>
 <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">

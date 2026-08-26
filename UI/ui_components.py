@@ -246,9 +246,23 @@ def inject_global_css():
         background: {GRADIENT} !important; color: #FFFBF3 !important; border: none !important;
         font-weight: 700 !important; box-shadow: 0 10px 26px -8px {ACCENT_DEEP}66 !important;
         transition: transform .2s ease, box-shadow .2s ease !important;
+        position: relative; overflow: hidden;
     }}
     button[kind="primary"]:hover, a[data-testid="stBaseLinkButton-primary"]:hover {{
         transform: translateY(-2px); box-shadow: 0 14px 34px -8px {ACCENT_DEEP}88 !important;
+    }}
+    /* Click-ripple: an instant "punch" the moment you press, since we can't
+       control timing across the page navigation that follows a click —
+       this makes the click itself feel satisfying and immediate, filling
+       the gap while Streamlit processes the actual page switch. */
+    button[kind="primary"]::after, a[data-testid="stBaseLinkButton-primary"]::after {{
+        content: ""; position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+        border-radius: 50%; background: rgba(255,255,255,.55); opacity: 0; pointer-events: none;
+        transform: translate(-50%, -50%);
+        transition: width .5s ease, height .5s ease, opacity .6s ease;
+    }}
+    button[kind="primary"]:active::after, a[data-testid="stBaseLinkButton-primary"]:active::after {{
+        width: 260%; height: 260%; opacity: .5; transition: width 0s, height 0s, opacity 0s;
     }}
     a[data-testid="stBaseLinkButton-secondary"] {{
         background: {BG_ELEV}CC !important; border: 1.5px solid {BORDER} !important; backdrop-filter: blur(6px);
@@ -290,9 +304,31 @@ def inject_global_css():
     .reveal-group > div:nth-child(3) .reveal-up {{ animation-delay: .16s; }}
     .reveal-group > div:nth-child(4) .reveal-up {{ animation-delay: .24s; }}
 
-    /* ---- Page/section mount transition ---- */
-    .section {{ animation: sectionIn .5s ease both; }}
-    @keyframes sectionIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+    /* ---- Page/section mount transition — a "coming into focus" feel
+       (blur + rise + fade together) rather than a plain fade, so arriving
+       at a new page reads as more deliberate. This is also the main
+       source of the "smoother Enter the Experience" feel: since we can't
+       control timing across an actual page navigation (Streamlit fully
+       swaps the page), the payoff is a satisfying materialize on arrival
+       instead of a fake pre-navigation delay. ---- */
+    .section {{ animation: sectionIn .65s cubic-bezier(.2,.8,.2,1) both; }}
+    @keyframes sectionIn {{
+        from {{ opacity: 0; transform: translateY(16px); filter: blur(6px); }}
+        to   {{ opacity: 1; transform: translateY(0); filter: blur(0); }}
+    }}
+
+    /* ---- Responsive breakpoints ---- */
+    @media (max-width: 900px) {{
+        div[data-testid="stPageLink"] a {{ font-size: .74rem; padding: .45rem .6rem; gap: .25rem; }}
+        .section {{ padding: 2.5rem 5vw; }}
+        .section-title {{ font-size: 1.8rem; }}
+    }}
+    @media (max-width: 640px) {{
+        div[data-testid="stPageLink"] a p {{ display: none; }}
+        .mcard-row {{ gap: .8rem; }}
+        .mcard {{ min-width: 120px; padding: 1.2rem 1.4rem; }}
+        .tilt-grid {{ grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }}
+    }}
 
     /* ---- Shimmer skeleton, for the one real load-delay in the app
        (first cold load of model.h5). Shimmer, not a spinner. ---- */
@@ -331,13 +367,34 @@ def top_nav(active: str):
 
     Uses st.page_link — Streamlit's own purpose-built widget for linking to
     another registered st.Page — instead of a manually-detected st.button
-    click + st.switch_page(). The earlier button-based approach had a
-    reported bug (clicking "About" navigated to "Live Demo" instead) that
-    I couldn't pin to a specific line via static review; rather than keep
-    guessing at a hand-rolled mechanism, this switches to the mechanism
-    Streamlit ships specifically for this exact use case, which sidesteps
-    whatever the exact root cause was.
+    click + st.switch_page().
+
+    Active-page highlighting note: this used to wrap the active page's
+    st.page_link with an opening <div class="nav-active"> in one st.markdown
+    call and a closing </div> in another. That doesn't actually nest the
+    link inside the div in the real DOM — each st.markdown call's HTML is
+    parsed and auto-closed independently (it's set via its own innerHTML
+    assignment), so the "wrapping" div silently self-closed as an empty
+    sibling and never really contained anything. Fixed below by targeting
+    the active column with a positional CSS selector instead, which
+    doesn't depend on cross-call nesting at all.
     """
+    active_index = None
+    for i, (path, _, _) in enumerate(PAGES):
+        if path.endswith(active):
+            active_index = i
+            break
+    # Column layout is [brand-spacer, *nav columns, trailing-spacer], and
+    # nth-child is 1-indexed, so the brand spacer is nth-child(1) and the
+    # first nav column is nth-child(2).
+    active_nth = active_index + 2 if active_index is not None else None
+    active_css = (
+        f'div[data-testid="stHorizontalBlock"] > div:nth-child({active_nth}) '
+        f'div[data-testid="stPageLink"] a {{ border-color: {ACCENT} !important; '
+        f'color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}'
+        if active_nth else ""
+    )
+
     st.markdown(f"""
     <style>
       .nav-wrap {{
@@ -347,7 +404,6 @@ def top_nav(active: str):
       }}
       .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT}; }}
       .nav-brand span {{ background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; }}
-      /* Restyle st.page_link to match the app's button language */
       div[data-testid="stPageLink"] {{ width: 100%; }}
       div[data-testid="stPageLink"] a {{
         display: flex; align-items: center; justify-content: center; gap: .4rem; width: 100%;
@@ -358,9 +414,7 @@ def top_nav(active: str):
       }}
       div[data-testid="stPageLink"] a:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
       div[data-testid="stPageLink"] a p {{ color: inherit !important; font-weight: 600 !important; }}
-      .nav-active div[data-testid="stPageLink"] a {{
-        border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important;
-      }}
+      {active_css}
     </style>
     <div class="nav-wrap">
       <div class="nav-brand">🧺 Harvest<span>Vision</span></div>
@@ -370,13 +424,8 @@ def top_nav(active: str):
     _, *cols_and_pad = st.columns([2.4] + [1] * len(PAGES) + [0.2])
     cols = cols_and_pad[:len(PAGES)]
     for col, (path, label, icon) in zip(cols, PAGES):
-        is_active = path.endswith(active)
         with col:
-            if is_active:
-                st.markdown('<div class="nav-active">', unsafe_allow_html=True)
             st.page_link(path, label=label, icon=icon, use_container_width=True)
-            if is_active:
-                st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<div style='height:.5rem;'></div>", unsafe_allow_html=True)
 
 
@@ -468,10 +517,11 @@ def top_k_bars(results, reveal_delay: float = 1.6):
         pct = round(conf * 100, 2)
         color = confidence_color(pct)
         delay = round(reveal_delay + i * 0.12, 2)
+        emoji = produce_emoji(disp.split(" ")[0].capitalize())
         bar_html = f"""
         <div style="margin-bottom:.9rem;">
           <div style="display:flex; justify-content:space-between; font-size:.85rem; margin-bottom:.3rem;">
-            <span style="color:{TEXT};">#{i+1} {disp}</span>
+            <span style="color:{TEXT};">#{i+1} {emoji} {disp}</span>
             <span style="color:{color}; font-weight:600;">{pct}%</span>
           </div>
           <div style="background:{BORDER}; border-radius:999px; height:8px; overflow:hidden;">

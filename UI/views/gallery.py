@@ -13,6 +13,8 @@ st.form sidesteps this entirely: the script only reruns once, when the
 person submits (Enter or the button), not per keystroke.
 """
 
+import random
+
 import streamlit as st
 
 import ui_components as ui
@@ -30,11 +32,27 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+if "gallery_query_input" not in st.session_state:
+    st.session_state["gallery_query_input"] = ""
+
+surprise_col, sort_col = st.columns([1, 2])
+with surprise_col:
+    if st.button("🎲 Surprise me", use_container_width=True):
+        # Setting session_state for the not-yet-rendered text_input below,
+        # earlier in this same script run, is enough — Streamlit picks it
+        # up when that widget instantiates further down, no rerun needed.
+        st.session_state["gallery_query_input"] = random.choice(list(grouped_classes().keys()))
+with sort_col:
+    sort_mode = st.selectbox(
+        "Sort", ["Alphabetical", "Most variants first"], label_visibility="collapsed",
+    )
+
 with st.form(key="gallery_search_form", border=False):
     search_col, btn_col = st.columns([4, 1])
     with search_col:
         query = st.text_input(
             "Search classes",
+            key="gallery_query_input",
             placeholder="Search by name — e.g. 'cherry', 'golden', 'pepper'…",
             label_visibility="collapsed",
         )
@@ -58,6 +76,11 @@ if query:
         f'{sum(len(v) for v in groups.values())} matching classes across {len(groups)} categories for "{query}"</div>',
         unsafe_allow_html=True,
     )
+
+if sort_mode == "Most variants first":
+    groups = dict(sorted(groups.items(), key=lambda kv: len(kv[1]), reverse=True))
+else:
+    groups = dict(sorted(groups.items(), key=lambda kv: kv[0].lower()))
 
 ui.class_showcase(groups)
 st.markdown('</div>', unsafe_allow_html=True)

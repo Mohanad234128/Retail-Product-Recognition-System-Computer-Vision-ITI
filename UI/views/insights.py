@@ -108,4 +108,50 @@ st.markdown("<div style='height:2rem;'></div>", unsafe_allow_html=True)
 ui.insight_callouts()
 st.markdown('</div>', unsafe_allow_html=True)
 
+# ---------------------------------------------------------------------------
+# Where the 82.8M parameters actually live — real numbers straight from the
+# architecture table, not estimated or fabricated. Log scale because the
+# range is enormous: the first Dense layer alone is ~940x bigger than the
+# largest conv layer.
+# ---------------------------------------------------------------------------
+st.markdown('<div class="section">', unsafe_allow_html=True)
+st.markdown('<div class="section-label">Architecture</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Where the parameters actually live</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-sub">Pooling, dropout, and flatten layers carry no trainable parameters — '
+    'only the convolutional and dense layers do, and one layer dominates by a huge margin.</div>',
+    unsafe_allow_html=True,
+)
+
+layer_names = ["Conv2D (128)", "Conv2D (64)", "Conv2D (32)", "Dense (5000)", "Dense (1000)", "Dense (260)"]
+layer_params = [3_584, 73_792, 18_464, 77_445_000, 5_001_000, 260_260]
+layer_colors = [ui.ACCENT_BLUE, ui.ACCENT_BLUE, ui.ACCENT_BLUE, ui.ACCENT, ui.ACCENT_YELLOW, ui.ACCENT2]
+
+param_fig = go.Figure(go.Bar(
+    x=layer_params, y=layer_names, orientation="h",
+    marker=dict(color=layer_colors),
+    text=[f"{p:,}" for p in layer_params], textposition="outside",
+    hovertemplate="%{y}<br>%{x:,} parameters<extra></extra>",
+))
+param_fig.update_layout(
+    plot_bgcolor="rgba(0,0,0,0)",
+    paper_bgcolor="rgba(0,0,0,0)",
+    font=dict(color=ui.TEXT_DIM, family="Inter"),
+    xaxis=dict(title="Parameters (log scale)", type="log", gridcolor=ui.BORDER, zeroline=False),
+    yaxis=dict(gridcolor=ui.BORDER, zeroline=False, autorange="reversed"),
+    margin=dict(l=10, r=10, t=20, b=40),
+    height=320,
+    hoverlabel=dict(bgcolor=ui.BG_ELEV, bordercolor=ui.BORDER, font=dict(color=ui.TEXT, family="Inter")),
+)
+st.plotly_chart(param_fig, use_container_width=True, config={"displayModeBar": False})
+st.markdown(
+    f'<div style="color:{ui.TEXT_FAINT}; font-size:.78rem; margin-top:-.5rem;">'
+    f'The first Dense(5000) layer alone holds <b style="color:{ui.ACCENT};">77.4M</b> of the model\'s '
+    f'82.8M parameters — about 93% of the entire network — because it fully connects a 15,488-value '
+    f'flattened feature map to 5,000 units. The three convolutional layers combined account for '
+    f'just 95,840 parameters — well under 0.2% of the total.</div>',
+    unsafe_allow_html=True,
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
 ui.footer_section()
