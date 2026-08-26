@@ -26,5 +26,5 @@ insights = st.Page("views/insights.py", title="Model Insights", icon="📊")
 gallery = st.Page("views/gallery.py", title="Class Gallery", icon="🗂️")
 about = st.Page("views/about.py", title="About", icon="✨")
 
-pg = st.navigation([landing, demo, insights, gallery, about], position="hidden")
+pg = st.navigation([landing, demo, insights, gallery, about], position="top")
 pg.run()
