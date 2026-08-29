@@ -37,6 +37,12 @@ import ui_components as ui
 
 ui.inject_global_css()
 
+# A slim, unobtrusive theme-toggle row — landing has no top_nav (by design,
+# to stay immersive), so this is its own unique home for the toggle.
+_, toggle_col = st.columns([9, 1.3])
+with toggle_col:
+    ui.theme_toggle_button(key="theme_toggle_landing")
+
 st.markdown(f"""
 <style>
   .hero {{
@@ -98,6 +104,14 @@ st.markdown(f"""
     gap: 3.5rem; flex-wrap: wrap; max-width: 1100px;
   }}
   .hero-text {{ max-width: 460px; text-align: left; }}
+  .brand-wordmark {{
+    display: flex; align-items: center; gap: .5rem; font-family: 'Fraunces', serif;
+    font-size: 1.3rem; font-weight: 600; color: {ui.TEXT}; margin-bottom: 1.3rem;
+  }}
+  .brand-wordmark b {{
+    background: {ui.GRADIENT}; -webkit-background-clip: text; background-clip: text;
+    color: transparent; font-weight: 700;
+  }}
   .badge-pill {{
     display: inline-flex; align-items: center; gap: .4rem; color: {ui.TEXT_DIM}; font-size: .74rem;
     font-weight: 600; margin-bottom: 1.1rem; font-family: 'Inter', sans-serif;
@@ -234,9 +248,10 @@ st.markdown(f"""
 <span class="float-emoji fe6">🥝</span>
 <div class="hero-inner">
 <div class="hero-text">
+<div class="brand-wordmark">{ui.logo_svg(30)} <span>Agro<b>Vision</b></span></div>
 <div class="badge-pill">🎓 ITI Computer Vision Graduation Project</div>
 <div class="kicker">Fresh Produce Recognition</div>
-<h1 class="headline">A CNN trained from scratch to recognize <span class="grad">260 varieties</span> of fruits, vegetables &amp; nuts.</h1>
+<h1 class="headline">A CNN-based computer vision system for multi-class <span class="grad">fruit, vegetable &amp; nut recognition</span>.</h1>
 <p class="sub">Trained on over 137,000 images with no pretrained backbone — a proof of concept for automated recognition at retail scale.</p>
 <div class="stat-row">
 <div class="stat"><b>82.8M</b><span>Parameters</span></div>

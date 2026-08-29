@@ -17,7 +17,7 @@ st.markdown('<div class="section-title">The project, in short</div>', unsafe_all
 st.markdown(f"""
 <div class="glass-card reveal-up" style="margin-bottom:1.5rem;">
   <p style="color:{ui.TEXT_DIM}; line-height:1.7; font-size:.95rem;">
-    <b style="color:{ui.TEXT};">HarvestVision</b> is the interactive showcase for the
+    <b style="color:{ui.TEXT};">AgroVision</b> is the interactive showcase for the
     <b style="color:{ui.TEXT};">Retail Product Recognition System</b> — a graduation project from the
     ITI Computer Vision track. It trains a convolutional neural network entirely from scratch — no
     pretrained backbone — on a 260-category fresh-produce dataset (Fruits-360), used here as a
@@ -37,10 +37,10 @@ st.markdown('<div class="section-title" style="font-size:1.6rem;">Built by</div>
 
 team = [
     ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
-    ("Abdallah Ali", "https://github.com/abdallah-farahat"),
-    ("Mohanad Ibrahim", "https://github.com/Mohanad234128"),
-    ("Faisal Abdulaziz", "https://github.com/Wttcss"),
-    ("Marawan Mohamed", "https://github.com/luka666-grim"),
+    ("Abdallah Ali", None),
+    ("Mohanad Ibrahim", None),
+    ("Faisal Abdulaziz", None),
+    ("Marawan Mohamed", None),
 ]
 cols = st.columns(len(team))
 for i, (col, (name, link)) in enumerate(zip(cols, team)):

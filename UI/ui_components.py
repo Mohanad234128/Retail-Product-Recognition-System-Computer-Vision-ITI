@@ -5,12 +5,27 @@ Shared design system for the multi-page app. Every page calls
 inject_global_css() first, then top_nav(active=...) — except the landing
 page, which stays nav-free and immersive on purpose.
 
+THEME SYSTEM: Streamlit's own theming (.streamlit/config.toml) is static —
+set once at startup, not something a user can toggle at runtime. Instead,
+the current theme ("dark" or "light") lives in st.session_state, and
+_apply_theme() (called at the top of inject_global_css()) reassigns this
+module's color globals (ACCENT, BG, TEXT, etc.) based on it. Because every
+color reference throughout the app — in this file and in every view file,
+via `ui.ACCENT` etc. — reads the module's CURRENT global value rather than
+a value captured at import time, this one reassignment is enough to
+retheme the whole app. No other file needs to change. The only exception
+is derived string constants (GRADIENT, GRADIENT_LEAF), which are rebuilt
+inside _apply_theme() too, since string concatenation doesn't "follow"
+its inputs after the fact the way a live reference would.
+
 DESIGN TOKENS (do not introduce new colors elsewhere — reuse these):
-  Background : cool neutral dark slate (not brown/orange, not gloomy) —
-               produce colors show up as accents, not as the base hue
-  Accents    : ACCENT (fresh teal-green) + ACCENT_DEEP (sky blue) form the
-               primary gradient; ACCENT_YELLOW / ACCENT_BLUE / ACCENT_PURPLE
-               / ACCENT2 add variety for labels, chips, and bounding boxes
+  Dark theme : cool neutral dark slate (not brown/orange, not gloomy)
+  Light theme: soft warm cream (not stark white, not washed-out pastel) —
+               "juicy" comes from deep saturated fruit-color accents
+               against that soft background, not from brightness
+  Accents    : ACCENT (primary) + ACCENT_DEEP (gradient partner), plus
+               ACCENT_YELLOW / ACCENT_BLUE / ACCENT_PURPLE / ACCENT2 /
+               ACCENT_TOMATO for variety in labels, chips, bounding boxes
   Type       : Fraunces (display) / Inter (body)
   Surfaces   : plain glass cards, static single-color frames — no animated
                color-cycling or gradient-fill effects
@@ -28,33 +43,89 @@ from io import BytesIO
 
 import streamlit as st
 
-# ---- Design tokens — "fresh & professional" palette -------------------------
-# Cool dark neutral base (not brown/orange) so produce-color accents (green,
-# yellow, blue, purple, tomato-red) pop without tinting the whole app warm.
-# Reuse these tokens everywhere; don't hardcode new hex colors elsewhere.
-ACCENT = "#2DD4A7"          # fresh teal-green — primary accent
-ACCENT_DEEP = "#0EA5E9"     # sky blue — primary gradient partner
-ACCENT2 = "#FBBF24"         # lemon yellow — secondary accent
-ACCENT_YELLOW = "#FACC15"   # banana / corn
-ACCENT_BLUE = "#60A5FA"     # blueberry
-ACCENT_PURPLE = "#A78BFA"   # grape
-ACCENT_TOMATO = "#FB7161"   # tomato-red, used sparingly (e.g. tomato label)
-GRADIENT = f"linear-gradient(120deg, {ACCENT}, {ACCENT_DEEP})"
-GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT}, #22C55E)"
+# ---- Theme palettes ----------------------------------------------------
+# Dark: cool neutral slate, produce colors as accents (unchanged from before).
+DARK_THEME = dict(
+    ACCENT="#2DD4A7", ACCENT_DEEP="#0EA5E9", ACCENT2="#FBBF24",
+    ACCENT_YELLOW="#FACC15", ACCENT_BLUE="#60A5FA", ACCENT_PURPLE="#A78BFA",
+    ACCENT_TOMATO="#FB7161",
+    BG="#10141C", BG_ELEV="#181E2A", BG_ELEV_2="#1E2534", BORDER="#2C3346",
+    TEXT="#EEF2F8", TEXT_DIM="#98A2B8", TEXT_FAINT="#5C6478",
+    BLOB_OPACITY=1.0, GRAIN_OPACITY=1.0,
+)
+# Light: soft warm cream (not white, not pastel-washed) + deep saturated
+# "juicy" fruit-jewel-tone accents — the richness comes from saturation,
+# not from being bright. Blobs/grain toned down since bright ambient glow
+# reads as "too colorful" rather than "juicy" against a light background.
+LIGHT_THEME = dict(
+    ACCENT="#1FA971", ACCENT_DEEP="#0C7FBF", ACCENT2="#E0A812",
+    ACCENT_YELLOW="#D6971A", ACCENT_BLUE="#1E88C7", ACCENT_PURPLE="#8A4FD1",
+    ACCENT_TOMATO="#E1432A",
+    BG="#FBF3E6", BG_ELEV="#FFFFFF", BG_ELEV_2="#FFF8EE", BORDER="#E8D9BE",
+    TEXT="#2E2013", TEXT_DIM="#7C6A52", TEXT_FAINT="#A99878",
+    BLOB_OPACITY=0.45, GRAIN_OPACITY=0.6,
+)
 
-BG = "#10141C"               # cool neutral dark slate — not brown, not gloomy
-BG_ELEV = "#181E2A"          # card surface
-BG_ELEV_2 = "#1E2534"        # soft alternate surface
-BORDER = "#2C3346"           # cool hairline border
-TEXT = "#EEF2F8"             # cool near-white text
-TEXT_DIM = "#98A2B8"
-TEXT_FAINT = "#5C6478"
-
-# Confidence-based color system — used by the demo page's prediction card,
-# top-k bars, and any future badge that needs to communicate "how sure".
+# Confidence-based color system — kept constant across themes; these are
+# semantic (pass/warn/fail) rather than decorative.
 CONF_HIGH = "#34D399"    # >90%
 CONF_MID = "#FBBF24"     # 70-90%
 CONF_LOW = "#F87171"     # <70%
+
+
+def get_theme() -> str:
+    """Current theme name, defaulting to dark. Persists across page
+    navigation automatically since it lives in st.session_state, which
+    is shared across the whole multi-page session."""
+    return st.session_state.get("theme", "dark")
+
+
+def _apply_theme():
+    """Reassigns this module's color globals based on the current theme.
+    Must be called before any code in this script run references a color
+    token — inject_global_css() does this first thing, which is why every
+    page calls it before anything else."""
+    global ACCENT, ACCENT_DEEP, ACCENT2, ACCENT_YELLOW, ACCENT_BLUE, ACCENT_PURPLE, ACCENT_TOMATO
+    global BG, BG_ELEV, BG_ELEV_2, BORDER, TEXT, TEXT_DIM, TEXT_FAINT
+    global GRADIENT, GRADIENT_LEAF, BLOB_OPACITY, GRAIN_OPACITY
+
+    palette = LIGHT_THEME if get_theme() == "light" else DARK_THEME
+    ACCENT = palette["ACCENT"]
+    ACCENT_DEEP = palette["ACCENT_DEEP"]
+    ACCENT2 = palette["ACCENT2"]
+    ACCENT_YELLOW = palette["ACCENT_YELLOW"]
+    ACCENT_BLUE = palette["ACCENT_BLUE"]
+    ACCENT_PURPLE = palette["ACCENT_PURPLE"]
+    ACCENT_TOMATO = palette["ACCENT_TOMATO"]
+    BG = palette["BG"]
+    BG_ELEV = palette["BG_ELEV"]
+    BG_ELEV_2 = palette["BG_ELEV_2"]
+    BORDER = palette["BORDER"]
+    TEXT = palette["TEXT"]
+    TEXT_DIM = palette["TEXT_DIM"]
+    TEXT_FAINT = palette["TEXT_FAINT"]
+    BLOB_OPACITY = palette["BLOB_OPACITY"]
+    GRAIN_OPACITY = palette["GRAIN_OPACITY"]
+    GRADIENT = f"linear-gradient(120deg, {ACCENT}, {ACCENT_DEEP})"
+    GRADIENT_LEAF = f"linear-gradient(120deg, {ACCENT}, #22C55E)"
+
+
+# Module-level defaults so `import ui_components as ui; ui.ACCENT` works
+# even before inject_global_css() has run once (e.g. at import time).
+_apply_theme()
+
+
+def theme_toggle_button(key: str = "theme_toggle_btn"):
+    """Renders a small button that flips between dark and light theme.
+    Calls st.rerun() immediately after updating session_state — without
+    it, this script run would finish rendering with the OLD theme's CSS,
+    since inject_global_css() (which reads the theme) already ran earlier
+    in this same run, before this button was reached."""
+    current = get_theme()
+    label = "☀️ Light" if current == "dark" else "🌙 Dark"
+    if st.button(label, key=key, help="Switch color theme", use_container_width=True):
+        st.session_state["theme"] = "light" if current == "dark" else "dark"
+        st.rerun()
 
 
 def confidence_color(pct: float) -> str:
@@ -127,7 +198,40 @@ def produce_emoji(category: str) -> str:
     return PRODUCE_EMOJI.get(category, "🌿")
 
 
+def logo_svg(size: int = 34) -> str:
+    """A small original logomark — a scanning/vision ring with a leaf,
+    standing in for 'AgroVision' (agriculture + computer vision) — used
+    instead of a stock icon or generated image so the brand mark is
+    actually original. Colored with the current theme's gradient, so it
+    re-themes automatically along with everything else.
+
+    Deliberately returned as ONE LINE with no internal newlines. Streamlit
+    runs every st.markdown() body through textwrap.dedent() before
+    rendering, which strips the common leading whitespace shared by every
+    line in the string. A multi-line return value embedded via an
+    f-string — with its own internal lines flush-left — breaks dedent's
+    ability to find any common prefix across the WHOLE surrounding
+    markdown call, leaving the rest of that call's CSS/HTML at its
+    original (4+ space) indentation. That's exactly what makes
+    Streamlit's markdown parser misread it as an indented code block and
+    render it as literal text. A single-line return value can't cause
+    this, regardless of where it's embedded or how indented the
+    surrounding content is.
+    """
+    return (
+        f'<svg width="{size}" height="{size}" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">'
+        f'<defs><linearGradient id="logoGrad" x1="0" y1="0" x2="34" y2="34">'
+        f'<stop stop-color="{ACCENT}"/><stop offset="1" stop-color="{ACCENT_DEEP}"/>'
+        f'</linearGradient></defs>'
+        f'<circle cx="14" cy="18" r="9.5" stroke="url(#logoGrad)" stroke-width="3"/>'
+        f'<line x1="20.7" y1="24.7" x2="28" y2="32" stroke="url(#logoGrad)" stroke-width="3" stroke-linecap="round"/>'
+        f'<path d="M14 8.5c-2.5-4-8-4.5-8-4.5s0 5.5 4 7.5c2 1 4-1 4-3z" fill="url(#logoGrad)"/>'
+        f'</svg>'
+    )
+
+
 def inject_global_css():
+    _apply_theme()
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
@@ -138,7 +242,96 @@ def inject_global_css():
     .stApp {{ background: {BG}; color: {TEXT}; }}
 
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
-    h1, h2, h3, h4 {{ font-family: 'Fraunces', serif; }}
+    h1, h2, h3, h4 {{ font-family: 'Fraunces', serif; color: {TEXT}; }}
+    p, span, div {{ color: {TEXT}; }}
+    label, .stMarkdown, .stMarkdown p {{ color: {TEXT}; }}
+
+    /* Native widget chrome that isn't already overridden elsewhere —
+       needed so text_input/selectbox/checkbox/file-uploader/form-buttons
+       follow the runtime theme toggle too, not just the custom
+       cards/buttons/nav. BaseWeb-based widgets (selectbox especially)
+       inject their own internal styles with high specificity, so plain
+       rules without !important get silently ignored — everything here
+       uses !important plus a wildcard descendant selector to guarantee
+       every nested text node actually repaints, not just the outer box. */
+    div[data-testid="stTextInput"] input {{
+        background: {BG_ELEV} !important; color: {TEXT} !important; border-color: {BORDER} !important;
+    }}
+    div[data-testid="stTextInput"] input::placeholder {{
+        color: {TEXT_FAINT} !important; opacity: 1 !important;
+    }}
+    div[data-testid="stSelectbox"],
+    div[data-testid="stSelectbox"] * {{
+        background-color: {BG_ELEV} !important;
+        color: {TEXT} !important;
+        fill: {TEXT} !important;
+        border-color: {BORDER} !important;
+    }}
+    /* BaseWeb renders the OPEN dropdown list as a portal appended
+       elsewhere in the DOM — it is not a descendant of stSelectbox at
+       all, so the wildcard rule above never reaches it. Targeted here by
+       BaseWeb's own data-attribute and ARIA role instead, since those
+       are stable regardless of exactly where in the DOM it portals to. */
+    [data-baseweb="popover"],
+    [data-baseweb="menu"],
+    ul[role="listbox"],
+    li[role="option"],
+    [data-baseweb="popover"] *,
+    [data-baseweb="menu"] *,
+    ul[role="listbox"] *,
+    li[role="option"] * {{
+        background-color: {BG_ELEV} !important;
+        color: {TEXT} !important;
+        border-color: {BORDER} !important;
+    }}
+    li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
+        background-color: {BG_ELEV_2} !important;
+    }}
+    div[data-testid="stForm"] {{ border-color: {BORDER} !important; background: transparent !important; }}
+
+    /* Replace the browser's default blue focus/selection ring on nav
+       links with a themed one — otherwise clicking a link can leave it
+       looking like selected/highlighted text rather than "active page". */
+    div[data-testid="stPageLink"] a:focus,
+    div[data-testid="stPageLink"] a:focus-visible {{
+        outline: none !important; box-shadow: 0 0 0 2px {ACCENT}55 !important;
+    }}
+
+    /* File uploader — both the outer card and the inner dropzone Streamlit
+       renders as a separate element with its own background. */
+    div[data-testid="stFileUploader"],
+    div[data-testid="stFileUploader"] *,
+    [data-testid="stFileUploaderDropzone"],
+    [data-testid="stFileUploaderDropzone"] * {{
+        background-color: {BG_ELEV} !important; color: {TEXT} !important; border-color: {BORDER} !important;
+    }}
+
+    /* Form submit buttons render under a distinct testid from plain
+       st.button, and its exact internal structure isn't stable across
+       Streamlit versions, so this targets everything under the testid
+       rather than a specific child path — same reasoning as selectbox
+       above: a precise selector that doesn't match the real DOM makes
+       !important irrelevant, since it never gets a chance to compete. */
+    div[data-testid="stFormSubmitButton"],
+    div[data-testid="stFormSubmitButton"] * {{
+        background-color: {BG_ELEV} !important; color: {TEXT} !important; border-color: {BORDER} !important;
+    }}
+    div[data-testid="stFormSubmitButton"] button {{
+        border: 1.5px solid {BORDER} !important; border-radius: 10px !important;
+        font-family: 'Inter', sans-serif !important; font-weight: 600 !important;
+        transition: all .25s cubic-bezier(.22,.9,.32,1.35) !important;
+    }}
+    div[data-testid="stFormSubmitButton"] button:hover {{
+        border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important;
+    }}
+
+    /* Nav page-links: Streamlit nests the label in a <p>, sometimes inside
+       further spans, each of which can carry its own muted/secondary text
+       color. Force every descendant, not just the direct <a>, or the
+       label ends up a washed-out gray on light backgrounds. */
+    div[data-testid="stPageLink"] a, div[data-testid="stPageLink"] a * {{
+        color: {TEXT} !important;
+    }}
 
     ::-webkit-scrollbar {{ width: 12px; height: 12px; }}
     ::-webkit-scrollbar-track {{ background: {BG}; }}
@@ -149,7 +342,11 @@ def inject_global_css():
     ::-webkit-scrollbar-thumb:hover {{ background: linear-gradient(180deg, {ACCENT_DEEP}, {ACCENT}); background-clip: padding-box; }}
     * {{ scrollbar-color: {ACCENT} {BG}; scrollbar-width: thin; }}
 
-    /* ---- Fresh ambient background, fixed to viewport ---- */
+    /* ---- Fresh ambient background, fixed to viewport ----
+       Blob/grain opacity is themed: bright colorful glow reads as "juicy"
+       against a dark background, but the same intensity against a light
+       background reads as "too colorful" rather than juicy — so light
+       mode dials both down via BLOB_OPACITY / GRAIN_OPACITY multipliers. */
     .aurora-bg {{
         position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
         background: {BG};
@@ -157,21 +354,21 @@ def inject_global_css():
     .aurora-blob {{
         position: absolute; border-radius: 50%; filter: blur(105px);
     }}
-    .blob-a {{ width: 620px; height: 620px; background: {ACCENT_YELLOW}; opacity: .30; top: -12%; left: -8%;
+    .blob-a {{ width: 620px; height: 620px; background: {ACCENT_YELLOW}; opacity: {round(.30*BLOB_OPACITY,3)}; top: -12%; left: -8%;
                animation: driftA 20s ease-in-out infinite alternate; }}
-    .blob-b {{ width: 580px; height: 580px; background: {ACCENT2}; opacity: .28; bottom: -16%; right: -6%;
+    .blob-b {{ width: 580px; height: 580px; background: {ACCENT2}; opacity: {round(.28*BLOB_OPACITY,3)}; bottom: -16%; right: -6%;
                animation: driftB 24s ease-in-out infinite alternate; }}
-    .blob-c {{ width: 460px; height: 460px; background: {ACCENT}; opacity: .30; top: 40%; right: 14%;
+    .blob-c {{ width: 460px; height: 460px; background: {ACCENT}; opacity: {round(.30*BLOB_OPACITY,3)}; top: 40%; right: 14%;
                animation: driftC 28s ease-in-out infinite alternate; }}
-    .blob-d {{ width: 380px; height: 380px; background: {ACCENT_PURPLE}; opacity: .22; top: 4%; left: 40%;
+    .blob-d {{ width: 380px; height: 380px; background: {ACCENT_PURPLE}; opacity: {round(.22*BLOB_OPACITY,3)}; top: 4%; left: 40%;
                animation: driftB 32s ease-in-out infinite alternate; }}
-    .blob-e {{ width: 420px; height: 420px; background: {ACCENT_BLUE}; opacity: .2; bottom: 6%; left: 12%;
+    .blob-e {{ width: 420px; height: 420px; background: {ACCENT_BLUE}; opacity: {round(.2*BLOB_OPACITY,3)}; bottom: 6%; left: 12%;
                animation: driftC 26s ease-in-out infinite alternate; }}
     @keyframes driftA {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(60px,80px) scale(1.15); }} }}
     @keyframes driftB {{ 0% {{ transform: translate(0,0) scale(1); }} 100% {{ transform: translate(-70px,-50px) scale(1.1); }} }}
     @keyframes driftC {{ 0% {{ transform: translate(0,0); }} 100% {{ transform: translate(-40px,60px); }} }}
     .grain-overlay {{
-        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .03;
+        position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: {round(.03*GRAIN_OPACITY,4)};
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }}
 
@@ -230,14 +427,20 @@ def inject_global_css():
     }}
     .chip:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; background: {ACCENT}12; transform: translateY(-1px); }}
 
-    /* Native Streamlit buttons restyled to match custom nav / CTAs */
+    /* Native Streamlit buttons restyled to match custom nav / CTAs.
+       !important is needed here — without it, Streamlit's own base button
+       styling (driven by the *static* config.toml theme) can still win
+       for some properties, which is exactly why the theme-toggle button
+       kept a dark background/invisible text even in light mode. */
     div[data-testid="stButton"] > button {{
-        background: {BG_ELEV}; color: {TEXT}; border: 1.5px solid {BORDER}; border-radius: 10px;
-        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
-        padding: .5rem 1.1rem; transition: all .25s cubic-bezier(.22,.9,.32,1.35);
+        background: {BG_ELEV} !important; color: {TEXT} !important; border: 1.5px solid {BORDER} !important;
+        border-radius: 10px !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important;
+        padding: .5rem 1.1rem !important; transition: all .25s cubic-bezier(.22,.9,.32,1.35) !important;
+        font-size: .85rem !important;
     }}
-    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; transform: translateY(-2px) scale(1.02); }}
-    div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {ACCENT}; color: {ACCENT_DEEP}; }}
+    div[data-testid="stButton"] > button * {{ color: inherit !important; }}
+    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
+    div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; }}
 
     .nav-active > button {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}
 
@@ -390,8 +593,12 @@ def top_nav(active: str):
     active_nth = active_index + 2 if active_index is not None else None
     active_css = (
         f'div[data-testid="stHorizontalBlock"] > div:nth-child({active_nth}) '
-        f'div[data-testid="stPageLink"] a {{ border-color: {ACCENT} !important; '
-        f'color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}'
+        f'div[data-testid="stPageLink"] a '
+        f'{{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; '
+        f'background: {ACCENT}18 !important; }} '
+        f'div[data-testid="stHorizontalBlock"] > div:nth-child({active_nth}) '
+        f'div[data-testid="stPageLink"] a * '
+        f'{{ color: {ACCENT_DEEP} !important; background: transparent !important; }}'
         if active_nth else ""
     )
 
@@ -402,7 +609,8 @@ def top_nav(active: str):
         background: {BG}CC; border-bottom: 1px solid {BORDER};
         padding: .9rem 6vw .8rem 6vw; display:flex; align-items:center; justify-content:space-between;
       }}
-      .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT}; }}
+      .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT};
+                    display: flex; align-items: center; gap: .5rem; }}
       .nav-brand span {{ background:{GRADIENT}; -webkit-background-clip:text; background-clip:text; color:transparent; }}
       div[data-testid="stPageLink"] {{ width: 100%; }}
       div[data-testid="stPageLink"] a {{
@@ -417,15 +625,18 @@ def top_nav(active: str):
       {active_css}
     </style>
     <div class="nav-wrap">
-      <div class="nav-brand">🧺 Harvest<span>Vision</span></div>
+      <div class="nav-brand">{logo_svg(26)} Agro<span>Vision</span></div>
     </div>
     """, unsafe_allow_html=True)
 
-    _, *cols_and_pad = st.columns([2.4] + [1] * len(PAGES) + [0.2])
+    _, *cols_and_pad = st.columns([2.0] + [1] * len(PAGES) + [0.7])
     cols = cols_and_pad[:len(PAGES)]
+    toggle_col = cols_and_pad[len(PAGES)]
     for col, (path, label, icon) in zip(cols, PAGES):
         with col:
             st.page_link(path, label=label, icon=icon, use_container_width=True)
+    with toggle_col:
+        theme_toggle_button(key="theme_toggle_nav")
     st.markdown("<div style='height:.5rem;'></div>", unsafe_allow_html=True)
 
 
@@ -716,7 +927,7 @@ def footer_section():
 
     st.markdown(f"""
     <div style="border-top:1px solid {BORDER}; padding:3rem 6vw; text-align:center; margin-top:2rem;">
-      <div class="section-label">HarvestVision</div>
+      <div class="section-label">AgroVision</div>
       <p style="color:{TEXT_DIM}; font-size:.85rem; margin:.8rem 0 1.2rem 0;">
         The showcase for Retail Product Recognition System — a graduation project from the ITI Computer Vision track.
       </p>
