@@ -269,25 +269,35 @@ def inject_global_css():
     }}
     /* BaseWeb renders the OPEN dropdown list as a portal appended
        elsewhere in the DOM — it is not a descendant of stSelectbox at
-       all, so the wildcard rule above never reaches it. Targeted here by
-       BaseWeb's own data-attribute and ARIA role instead, since those
-       are stable regardless of exactly where in the DOM it portals to. */
-    [data-baseweb="popover"],
-    [data-baseweb="menu"],
-    ul[role="listbox"],
-    li[role="option"],
-    [data-baseweb="popover"] *,
-    [data-baseweb="menu"] *,
-    ul[role="listbox"] *,
-    li[role="option"] * {{
+       all, so the wildcard rule above never reaches it. Previous attempts
+       guessed at BaseWeb's exact attribute VALUES (data-baseweb="menu",
+       role="listbox"), which apparently don't match this version. Using
+       attribute-EXISTS selectors instead — [data-baseweb], [role] — casts
+       a much wider net that doesn't depend on knowing the exact value. */
+    [data-baseweb],
+    [data-baseweb] *,
+    [role="listbox"], [role="option"], [role="menu"], [role="menuitem"],
+    [role="listbox"] *, [role="option"] *, [role="menu"] *, [role="menuitem"] * {{
         background-color: {BG_ELEV} !important;
         color: {TEXT} !important;
         border-color: {BORDER} !important;
+        fill: {TEXT} !important;
     }}
-    li[role="option"]:hover, li[role="option"][aria-selected="true"] {{
+    [role="option"]:hover, [role="option"][aria-selected="true"],
+    [role="menuitem"]:hover {{
         background-color: {BG_ELEV_2} !important;
     }}
     div[data-testid="stForm"] {{ border-color: {BORDER} !important; background: transparent !important; }}
+
+    /* st.code() uses its own fixed syntax-highlighting theme, entirely
+       independent of the app's light/dark setting or config.toml — it
+       needs an explicit override or it stays permanently dark. */
+    div[data-testid="stCode"], div[data-testid="stCode"] *,
+    div[data-testid="stCodeBlock"], div[data-testid="stCodeBlock"] *,
+    div[data-testid="stCode"] pre, div[data-testid="stCodeBlock"] pre {{
+        background-color: {BG_ELEV} !important;
+        color: {TEXT} !important;
+    }}
 
     /* Replace the browser's default blue focus/selection ring on nav
        links with a themed one — otherwise clicking a link can leave it
