@@ -238,7 +238,17 @@ def inject_global_css():
 
     #MainMenu, footer, header {{ visibility: hidden; }}
     section[data-testid="stSidebar"] {{ display: none; }}
-    .block-container {{ padding-top: 0 !important; padding-bottom: 0 !important; max-width: 100% !important; }}
+    .block-container {{
+        padding-top: 0 !important; padding-bottom: 0 !important;
+        padding-left: 0 !important; padding-right: 0 !important;
+        max-width: 100% !important;
+    }}
+    /* Streamlit's outer app view also carries its own default padding on
+       some versions, independent of .block-container — reset that too so
+       full-bleed elements (the hero, aurora background, etc.) genuinely
+       reach the true viewport edges instead of stopping at an inset. */
+    [data-testid="stAppViewContainer"] > .main {{ padding: 0 !important; }}
+    section[data-testid="stMain"] {{ padding: 0 !important; }}
     .stApp {{ background: {BG}; color: {TEXT}; }}
 
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}

@@ -70,10 +70,35 @@ st.markdown(f"""
   @keyframes starTwinkle {{ from {{ opacity: .38; }} to {{ opacity: .62; }} }}
   .scan-line {{
     position: absolute; left: 0; width: 100%; height: 2px;
-    background: linear-gradient(90deg, transparent, {ui.ACCENT}, {ui.ACCENT_DEEP}, transparent);
-    box-shadow: 0 0 24px 4px {ui.ACCENT}99; animation: scan 5s ease-in-out infinite;
+    background: linear-gradient(90deg, transparent, {ui.ACCENT_YELLOW}, {ui.ACCENT}, {ui.ACCENT_BLUE}, {ui.ACCENT_PURPLE}, transparent);
+    box-shadow: 0 0 28px 5px {ui.ACCENT}AA; animation: scan 5s ease-in-out infinite;
   }}
   @keyframes scan {{ 0% {{ top:6%; opacity:0; }} 10% {{ opacity:1; }} 90% {{ opacity:1; }} 100% {{ top:88%; opacity:0; }} }}
+
+  /* "Juicy" ambient color band — landing page only. This makes permanent
+     and always-visible the vivid multi-color blend that used to only
+     flash briefly right when the page (re)mounts, since every button
+     click fully reruns the script and restarts these CSS animations
+     from their initial state. Heavily blurred and kept fairly low
+     opacity so it reads as atmosphere behind the hero text, not a
+     distracting stripe. */
+  .juicy-band {{
+    position: absolute; top: 10%; left: -15%; width: 130%; height: 220px;
+    background: linear-gradient(100deg, transparent, {ui.ACCENT_YELLOW}66, {ui.ACCENT}66, {ui.ACCENT_BLUE}5C, {ui.ACCENT_PURPLE}52, transparent);
+    filter: blur(46px); opacity: .6; pointer-events: none;
+    animation: juicyDrift 16s ease-in-out infinite alternate, juicyHue 14s linear infinite;
+  }}
+  @keyframes juicyDrift {{ from {{ translate: -4% -6px; }} to {{ translate: 4% 10px; }} }}
+  @keyframes juicyHue {{
+    0%   {{ filter: blur(46px) hue-rotate(0deg); }}
+    50%  {{ filter: blur(52px) hue-rotate(45deg); }}
+    100% {{ filter: blur(46px) hue-rotate(0deg); }}
+  }}
+  /* The two blobs nearest this band get a boost specifically on landing,
+     so the ambient glow blends with them rather than looking like two
+     unrelated effects layered on top of each other. */
+  .aurora-blob.blob-a {{ opacity: .5 !important; }}
+  .aurora-blob.blob-e {{ opacity: .38 !important; }}
 
   /* Bounding boxes now drift continuously along a slow organic path — like
      they're actively tracking something — instead of fading in and sitting
@@ -160,7 +185,7 @@ st.markdown(f"""
     stroke-dasharray: 18 100; opacity: .8; filter: drop-shadow(0 0 6px {ui.ACCENT}); transform-origin: center;
     animation: spinScanner 2.4s linear infinite;
   }}
-  @keyframes spinScanner {{ to {{ transform: rotate(270deg); }} }}
+  @keyframes spinScanner {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
   .ring-track {{ fill: none; stroke: {ui.BORDER}; stroke-width: 10; }}
   .ring-fill {{
     fill: none; stroke: url(#ringGradient); stroke-width: 10; stroke-linecap: round;
@@ -235,6 +260,7 @@ st.markdown(f"""
 </style>
 <div class="hero">
 <div class="starfield"></div>
+<div class="juicy-band"></div>
 <div class="scan-line"></div>
 <div class="bbox b1"><span>🍎 apple · 0.94</span></div>
 <div class="bbox b2"><span>🍅 tomato · 0.91</span></div>
