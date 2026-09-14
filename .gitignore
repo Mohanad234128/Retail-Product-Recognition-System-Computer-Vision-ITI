@@ -13,12 +13,6 @@ Fruits-360 dataset/
 # !report/images/*.png
 # !slides/images/*.png
 
-# ============================
-# Trained model - too large for GitHub (335MB > 100MB limit)
-# ============================
-Model/
-*.h5
-*.keras
 
 # ============================
 # Jupyter Notebook
