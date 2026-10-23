@@ -7,6 +7,7 @@ Project credits and background — the "About" destination in the nav.
 import streamlit as st
 
 import ui_components as ui
+import metrics as M
 
 ui.inject_global_css()
 ui.top_nav(active="about.py")
@@ -19,15 +20,16 @@ st.markdown(f"""
   <p style="color:{ui.TEXT_DIM}; line-height:1.7; font-size:.95rem;">
     <b style="color:{ui.TEXT};">AgroVision</b> is the interactive showcase for the
     <b style="color:{ui.TEXT};">Retail Product Recognition System</b> — a graduation project from the
-    ITI Computer Vision track. It trains a convolutional neural network entirely from scratch — no
-    pretrained backbone — on a 260-category fresh-produce dataset (Fruits-360), used here as a
+    ITI Computer Vision track. It fine-tunes an ImageNet-pretrained EfficientNetB0 on a
+    {M.NUM_CLASSES}-category fresh-produce dataset (Fruits-360), used here as a
     representative stand-in for the broader problem of automated product recognition in retail
     shelf, checkout, and inventory pipelines.
   </p>
   <p style="color:{ui.TEXT_DIM}; line-height:1.7; font-size:.95rem;">
-    The network reached <b style="color:{ui.ACCENT};">94.18% validation accuracy</b> after just 5 epochs
-    of training — with the curve still climbing when training stopped, suggesting real headroom left
-    for further tuning.
+    The model scores <b style="color:{ui.ACCENT};">{M.TEST_ACC:.2f}% on the held-out test set</b>
+    ({M.TEST_IMGS:,} images) and peaked at {M.BEST_VAL_ACC:.2f}% validation accuracy. Training used
+    background-swap and photometric augmentation so it copes better with photos that don't look like
+    white-background studio shots.
   </p>
 </div>
 """, unsafe_allow_html=True)
@@ -37,10 +39,10 @@ st.markdown('<div class="section-title" style="font-size:1.6rem;">Built by</div>
 
 team = [
     ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
-    ("Abdallah Ali", "https://github.com/abdallah-farahat"),
-    ("Mohanad Ibrahim", "https://github.com/Mohanad234128"),
-    ("Faisal Abdulaziz", "https://github.com/Wttcss"),
-    ("Marawan Mohamed", "https://github.com/luka666-grim"),
+    ("Abdallah Ali", None),
+    ("Mohanad Ibrahim", None),
+    ("Faisal Abdulaziz", None),
+    ("Marawan Mohamed", None),
 ]
 cols = st.columns(len(team))
 for i, (col, (name, link)) in enumerate(zip(cols, team)):

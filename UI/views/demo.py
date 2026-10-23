@@ -30,7 +30,7 @@ st.markdown('<div class="section-label">Live Demo</div>', unsafe_allow_html=True
 st.markdown('<div class="section-title">Run the model yourself</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="section-sub">Upload a produce image or pick a sample below. Inference runs the exact '
-    'preprocessing pipeline the model was trained on: 100×100 resize, RGB, simple /255. rescale.</div>',
+    'preprocessing pipeline the model was trained on: 128×128 resize, RGB, raw 0–255 pixels (EfficientNet normalises internally).</div>',
     unsafe_allow_html=True,
 )
 
@@ -182,3 +182,4 @@ else:
 
 st.markdown('</div>', unsafe_allow_html=True)
 ui.footer_section()
+

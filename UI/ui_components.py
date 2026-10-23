@@ -42,6 +42,7 @@ import base64
 from io import BytesIO
 
 import streamlit as st
+import metrics as M
 
 # ---- Theme palettes ----------------------------------------------------
 # Dark: cool neutral slate, produce colors as accents (unchanged from before).
@@ -774,15 +775,16 @@ def top_k_bars(results, reveal_delay: float = 1.6):
     """, unsafe_allow_html=True)
 
 
-def metric_counters(val_acc=94.18, params_m=82.8, classes=260, train_imgs=137221):
+def metric_counters(val_acc=M.TEST_ACC, params_m=round(M.TOTAL_PARAMS / 1e6, 1), classes=M.NUM_CLASSES,
+                    train_imgs=M.TOTAL_TRAIN_FOLDER_IMGS):
     """Renders four metric cards whose numbers count up from 0 as they
     scroll into view — pure CSS, no JS, no iframe. Uses the same
     animation-timeline: view() technique as .reveal-up, combined with an
     animated integer custom property driving a CSS counter().
 
     CSS counters only support integers, so each metric is split into an
-    animated integer part (0 -> 94, 0 -> 82, etc.) plus a static suffix
-    appended after ('.18%', '.8M', 'K') — the count-up motion reads the
+    animated integer part (0 -> 87, 0 -> 4, etc.) plus a static suffix
+    appended after ('.81%', '.4M', 'K') — the count-up motion reads the
     same as a fully animated decimal without needing JS to get there.
 
     Browsers without animation-timeline: view() support get the plain
@@ -799,10 +801,10 @@ def metric_counters(val_acc=94.18, params_m=82.8, classes=260, train_imgs=137221
     acc_int, acc_suffix = split(val_acc, 2, "%")
     params_int, params_suffix = split(params_m, 1, "M")
     classes_int, classes_suffix = int(classes), ""
-    imgs_int, imgs_suffix = int(train_imgs / 1000), "K"
+    imgs_int, imgs_suffix = round(train_imgs / 1000), "K"
 
     metrics = [
-        ("c1", acc_int, acc_suffix, "Val Accuracy"),
+        ("c1", acc_int, acc_suffix, "Test Accuracy"),
         ("c2", params_int, params_suffix, "Parameters"),
         ("c3", classes_int, classes_suffix, "Classes"),
         ("c4", imgs_int, imgs_suffix, "Training Images"),
@@ -849,10 +851,10 @@ def metric_counters(val_acc=94.18, params_m=82.8, classes=260, train_imgs=137221
 
 def pipeline_steps():
     steps = [
-        ("01", "Raw Image", "100×100 RGB input, loaded and resized to match training-time preprocessing exactly."),
-        ("02", "Rescale + Augment", "Pixel values rescaled to [0,1] via /255.; training-only augmentation used shear, horizontal/vertical flip, and zoom."),
-        ("03", "From-Scratch CNN", "3 convolutional blocks (128→64→32 filters) with max-pooling and dropout, no pretrained backbone."),
-        ("04", "260-Class Softmax", "Two dense layers (5000 → 1000 units) feed a 260-way softmax over produce categories."),
+        ("01", "Raw Image", f"Native 100×100 RGB photo resized to {M.IMG_SIZE}×{M.IMG_SIZE}. Raw 0–255 pixels go straight in — no /255 rescaling."),
+        ("02", "Augment (train only)", "White studio background swapped ~50% of the time, plus flip, rotation, zoom, shift, brightness/contrast jitter and sensor noise."),
+        ("03", "EfficientNetB0", f"ImageNet-pretrained backbone ({M.BACKBONE_PARAMS / 1e6:.2f}M params), frozen first, then the top 30 layers fine-tuned."),
+        ("04", f"{M.NUM_CLASSES}-Class Head", f"Global average pooling → Dropout 0.3 → Dense 256 → Dropout 0.2 → {M.NUM_CLASSES}-way softmax."),
         ("05", "Prediction", "argmax gives the top class; the full softmax vector powers the top-k confidence ranking."),
     ]
     cols = st.columns(len(steps))
@@ -870,9 +872,9 @@ def pipeline_steps():
 
 def insight_callouts():
     insights = [
-        ("Still climbing", "Trained for only 5 epochs with early-stopping patience of 5 — the val-accuracy curve hadn't plateaued yet, so there's clear headroom left on the table."),
-        ("No pretrained backbone", "The network was trained entirely from scratch (no ImageNet weights), which makes the 94.18% result a stronger signal of the architecture itself."),
-        ("What's next", "Roadmap: more epochs, a confusion matrix to find per-class weak spots, and a MobileNetV2 transfer-learning comparison for a lighter, faster model."),
+        ("Honest headline", f"{M.TEST_ACC:.2f}% on the {M.TEST_IMGS:,}-image held-out test set. Validation peaked higher ({M.BEST_VAL_ACC:.2f}%) because it is a random split of the training folders, where near-identical rotations of the same fruit appear on both sides."),
+        ("Fine-tuning plateaued", f"Unfreezing the top 30 backbone layers added no gain: validation stayed at ~{M.P2_VAL_ACC[0]:.1f}% and early stopping ended phase 2 after {M.P2_EPOCHS} epochs. The head, not the backbone, was the limit."),
+        ("What's next", f"{M.CLASSES_F1_BELOW_60} classes score F1 < 0.60 (the Blackberry and Cherry variants, Cantaloupe 2, Apple Crimson Snow). Next: targeted data for those, real-photo backgrounds, and a larger EfficientNet at higher resolution."),
     ]
     cols = st.columns(3)
     for i, (col, (title, desc)) in enumerate(zip(cols, insights)):

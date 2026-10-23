@@ -1,8 +1,8 @@
 """
 views/gallery.py
 ------------------
-The full 260-class catalog, grouped by base produce type so it reads as
-a showcase grid instead of 260 lines of visual noise.
+The full 262-class catalog, grouped by base produce type so it reads as
+a showcase grid instead of 262 lines of visual noise.
 
 Rerun-vs-animation flag: st.text_input reruns the whole script on every
 keystroke by default. With ~79 category cards each carrying a .fade-in /
@@ -25,7 +25,7 @@ ui.top_nav(active="gallery.py")
 
 st.markdown('<div class="section">', unsafe_allow_html=True)
 st.markdown('<div class="section-label">Coverage</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-title">260 categories, grouped</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">262 categories, grouped</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="section-sub">Raw class labels include variant numbers (e.g. "Apple Red Delicious 1"). '
     'Grouped here by base produce type so the full catalog reads as a showcase, not noise.</div>',
@@ -86,3 +86,4 @@ ui.class_showcase(groups)
 st.markdown('</div>', unsafe_allow_html=True)
 
 ui.footer_section()
+

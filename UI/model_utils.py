@@ -2,10 +2,10 @@
 model_utils.py
 ----------------
 Model loading + inference. Preprocessing here intentionally mirrors the
-notebook's `prepare_image()` exactly: 100x100 resize, /255. rescale, no
-mean/std normalization, no color-space conversion. Do not "improve" this
-without retraining, or predictions will silently drift from the model's
-trained distribution.
+final notebook's pipeline: 128x128 bilinear resize, RGB, RAW 0-255 pixels.
+Do NOT divide by 255 — EfficientNetB0 rescales/normalises internally, and a
+second /255 crushes the input toward zero. Do not "improve" this without
+retraining, or predictions will silently drift.
 """
 
 import os
@@ -21,11 +21,16 @@ from class_names import CLASS_NAMES, display_name
 
 MODEL_PATH_CANDIDATES = [
     "model.h5",
+    os.path.join("Model", "model.h5"),
+    os.path.join("..", "Model", "model.h5"),
     os.path.join("NoteBook", "model.h5"),
     os.path.join("assets", "model.h5"),
+    "best_fruits_model.keras",
+    os.path.join("Model", "best_fruits_model.keras"),
+    os.path.join("..", "Model", "best_fruits_model.keras"),
 ]
 
-IMG_SIZE = (100, 100)
+IMG_SIZE = (128, 128)
 
 
 def find_model_path() -> Optional[str]:
@@ -38,24 +43,22 @@ def find_model_path() -> Optional[str]:
 @st.cache_resource(show_spinner=False)
 def load_prediction_model(model_path: str):
     """Cached model load. Pass an explicit path so cache invalidates if the path changes."""
-    return load_model(model_path)
+    model = load_model(model_path, compile=False)
+    n_out = model.output_shape[-1]
+    if n_out != len(CLASS_NAMES):
+        raise ValueError(
+            f"Model has {n_out} outputs but class_names.py lists {len(CLASS_NAMES)} classes. "
+            "Use the model.h5 produced by NoteBook/iti-gradution-final.ipynb."
+        )
+    return model
 
 
 def prepare_image_array(pil_image: Image.Image) -> np.ndarray:
-    """Exact port of the notebook's prepare_image(), adapted to take a PIL
-    Image (from st.file_uploader / a sample file) instead of a filesystem path.
-
-    Original:
-        image = load_img(path_for_image, target_size=(100, 100))
-        img_result = img_to_array(image)
-        img_result = np.expand_dims(img_result, axis=0)
-        img_result = img_result / 255.
-    """
-    image = pil_image.convert("RGB").resize(IMG_SIZE)
+    """Mirrors the training pipeline (image_dataset_from_directory, 128x128,
+    bilinear, raw 0-255 float32). No /255 — EfficientNet normalises itself."""
+    image = pil_image.convert("RGB").resize(IMG_SIZE, Image.BILINEAR)
     img_result = img_to_array(image)
-    img_result = np.expand_dims(img_result, axis=0)
-    img_result = img_result / 255.0
-    return img_result
+    return np.expand_dims(img_result, axis=0)
 
 
 def predict_top_k(model, pil_image: Image.Image, k: int = 5):

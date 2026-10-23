@@ -34,6 +34,7 @@ regardless of blank lines inside them.
 
 import streamlit as st
 import ui_components as ui
+import metrics as M
 
 ui.inject_global_css()
 
@@ -193,7 +194,7 @@ st.markdown(f"""
     animation: fillRing 2.2s cubic-bezier(.2,.8,.2,1) .3s forwards;
     filter: drop-shadow(0 0 10px {ui.ACCENT}88);
   }}
-  @keyframes fillRing {{ to {{ stroke-dashoffset: 21.2; }} }}
+  @keyframes fillRing {{ to {{ stroke-dashoffset: {M.ring_offset()}; }} }}
   .ring-center {{ position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center; }}
   .ring-center b {{ font-family: 'Fraunces', serif; font-size: 1.9rem; font-weight: 700; color: {ui.TEXT}; line-height: 1; }}
@@ -278,11 +279,11 @@ st.markdown(f"""
 <div class="badge-pill">🎓 ITI Computer Vision Graduation Project</div>
 <div class="kicker">Fresh Produce Recognition</div>
 <h1 class="headline">A CNN-based computer vision system for multi-class <span class="grad">fruit, vegetable &amp; nut recognition</span>.</h1>
-<p class="sub">Trained on over 137,000 images with no pretrained backbone — a proof of concept for automated recognition at retail scale.</p>
+<p class="sub">Transfer learning on {M.TOTAL_TRAIN_FOLDER_IMGS:,} images, hardened with background-swap augmentation — a proof of concept for automated recognition at retail scale.</p>
 <div class="stat-row">
-<div class="stat"><b>82.8M</b><span>Parameters</span></div>
-<div class="stat"><b>260</b><span>Classes</span></div>
-<div class="stat"><b>137K</b><span>Images</span></div>
+<div class="stat"><b>{M.params_label()}</b><span>Parameters</span></div>
+<div class="stat"><b>{M.NUM_CLASSES}</b><span>Classes</span></div>
+<div class="stat"><b>{M.compact_count(M.TOTAL_TRAIN_FOLDER_IMGS)}</b><span>Images</span></div>
 </div>
 </div>
 <div class="ring-wrap">
@@ -308,8 +309,8 @@ st.markdown(f"""
 <circle class="ring-scanner" cx="65" cy="65" r="50"></circle>
 </svg>
 <div class="ring-center">
-<b>94.18%</b>
-<span>Val Accuracy</span>
+<b>{M.TEST_ACC:.2f}%</b>
+<span>Test Accuracy</span>
 </div>
 </div>
 </div>
@@ -369,8 +370,8 @@ st.markdown('<div class="section-title">Three ways in</div>', unsafe_allow_html=
 
 teasers = [
     ("🔍", "Live Demo", "Upload a product photo or try a sample — watch the model classify it in real time with a full top-5 confidence breakdown.", "views/demo.py", "Try the demo →"),
-    ("📊", "Model Insights", "The architecture, training curve, and honest roadmap — how a from-scratch CNN reached 94.18% validation accuracy in 5 epochs.", "views/insights.py", "See the numbers →"),
-    ("🗂️", "Class Gallery", "All 260 recognized categories, grouped by base produce type so the full catalog reads as a showcase, not noise.", "views/gallery.py", "Browse classes →"),
+    ("📊", "Model Insights", f"The architecture, training curve, and honest roadmap — how an EfficientNetB0 transfer-learning model reached {M.TEST_ACC:.2f}% on the held-out test set.", "views/insights.py", "See the numbers →"),
+    ("🗂️", "Class Gallery", f"All {M.NUM_CLASSES} recognized categories, grouped by base produce type so the full catalog reads as a showcase, not noise.", "views/gallery.py", "Browse classes →"),
 ]
 
 cols = st.columns(3)
