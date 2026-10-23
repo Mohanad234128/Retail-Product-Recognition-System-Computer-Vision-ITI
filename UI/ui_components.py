@@ -231,7 +231,7 @@ def logo_svg(size: int = 34) -> str:
     )
 
 
-def inject_global_css():
+def inject_global_css(full_bleed: bool = False):
     _apply_theme()
     st.markdown(f"""
     <style>
@@ -241,8 +241,10 @@ def inject_global_css():
     section[data-testid="stSidebar"] {{ display: none; }}
     .block-container {{
         padding-top: 0 !important; padding-bottom: 0 !important;
-        padding-left: 0 !important; padding-right: 0 !important;
-        max-width: 100% !important;
+        padding-left: {"0" if full_bleed else "max(1.25rem, 6vw)"} !important;
+        padding-right: {"0" if full_bleed else "max(1.25rem, 6vw)"} !important;
+        max-width: {"100%" if full_bleed else "1280px"} !important;
+        {"" if full_bleed else "margin-left: auto !important; margin-right: auto !important;"}
     }}
     /* Streamlit's outer app view also carries its own default padding on
        some versions, independent of .block-container — reset that too so
@@ -393,7 +395,7 @@ def inject_global_css():
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }}
 
-    .section {{ padding: 3.5rem 6vw; max-width: 1180px; margin: 0 auto; }}
+    .section {{ padding: 3.5rem {"6vw" if full_bleed else "0"}; max-width: {"1180px" if full_bleed else "none"}; margin: 0 auto; }}
     .section-label {{
         display: inline-block; color: {ACCENT_DEEP}; font-family: 'Inter', sans-serif; font-weight: 700;
         letter-spacing: .18em; text-transform: uppercase; font-size: .72rem; margin-bottom: .8rem;
@@ -453,15 +455,17 @@ def inject_global_css():
        styling (driven by the *static* config.toml theme) can still win
        for some properties, which is exactly why the theme-toggle button
        kept a dark background/invisible text even in light mode. */
-    div[data-testid="stButton"] > button {{
+    [data-testid="stTooltipContent"] {{ background: {BG_ELEV} !important; color: {TEXT} !important; border: 1px solid {BORDER} !important; }}
+    [data-testid="stTooltipContent"] * {{ color: {TEXT} !important; }}
+    div[data-testid="stButton"] button, div[data-testid="stDownloadButton"] button {{
         background: {BG_ELEV} !important; color: {TEXT} !important; border: 1.5px solid {BORDER} !important;
         border-radius: 10px !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important;
         padding: .5rem 1.1rem !important; transition: all .25s cubic-bezier(.22,.9,.32,1.35) !important;
         font-size: .85rem !important;
     }}
-    div[data-testid="stButton"] > button * {{ color: inherit !important; }}
-    div[data-testid="stButton"] > button:hover {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
-    div[data-testid="stButton"] > button:focus:not(:active) {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; }}
+    div[data-testid="stButton"] button *, div[data-testid="stDownloadButton"] button * {{ color: inherit !important; }}
+    div[data-testid="stButton"] button:hover, div[data-testid="stDownloadButton"] button:hover {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
+    div[data-testid="stButton"] button:focus:not(:active), div[data-testid="stDownloadButton"] button:focus:not(:active) {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; }}
 
     .nav-active > button {{ border-color: {ACCENT} !important; color: {ACCENT_DEEP} !important; background: {ACCENT}18 !important; }}
 
@@ -628,7 +632,7 @@ def top_nav(active: str):
       .nav-wrap {{
         position: sticky; top: 0; z-index: 999; backdrop-filter: blur(14px);
         background: {BG}CC; border-bottom: 1px solid {BORDER};
-        padding: .9rem 6vw .8rem 6vw; display:flex; align-items:center; justify-content:space-between;
+        padding: .9rem 0 .8rem 0; display:flex; align-items:center; justify-content:space-between;
       }}
       .nav-brand {{ font-family:'Fraunces',serif; font-weight:700; font-size:1.05rem; color:{TEXT};
                     display: flex; align-items: center; gap: .5rem; }}
@@ -637,8 +641,8 @@ def top_nav(active: str):
       div[data-testid="stPageLink"] a {{
         display: flex; align-items: center; justify-content: center; gap: .4rem; width: 100%;
         background: {BG_ELEV}; color: {TEXT} !important; border: 1.5px solid {BORDER}; border-radius: 10px;
-        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .85rem;
-        padding: .5rem 1.1rem; text-decoration: none !important;
+        font-family: 'Inter', sans-serif; font-weight: 600; font-size: .82rem;
+        padding: .5rem .6rem; text-decoration: none !important; white-space: nowrap;
         transition: all .25s cubic-bezier(.22,.9,.32,1.35);
       }}
       div[data-testid="stPageLink"] a:hover {{ border-color: {ACCENT}; color: {ACCENT_DEEP} !important; transform: translateY(-2px) scale(1.02); }}
@@ -650,7 +654,7 @@ def top_nav(active: str):
     </div>
     """, unsafe_allow_html=True)
 
-    _, *cols_and_pad = st.columns([2.0] + [1] * len(PAGES) + [0.7])
+    _, *cols_and_pad = st.columns([1.1] + [1] * len(PAGES) + [0.8])
     cols = cols_and_pad[:len(PAGES)]
     toggle_col = cols_and_pad[len(PAGES)]
     for col, (path, label, icon) in zip(cols, PAGES):
@@ -962,3 +966,48 @@ def footer_section():
       </p>
     </div>
     """, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# Produce type badge + per-image result card (multi-image demo)
+# ---------------------------------------------------------------------------
+TYPE_STYLE = {
+    "Fruit": ("🍎", "#F43F5E"),
+    "Vegetable": ("🥦", "#22C55E"),
+    "Nut": ("🥜", "#D9A441"),
+}
+
+
+def type_badge_html(ptype: str) -> str:
+    emoji, color = TYPE_STYLE.get(ptype, ("🌿", ACCENT))
+    return (f'<span style="display:inline-block; padding:.22rem .7rem; border-radius:999px; font-size:.72rem; '
+            f'font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:{color}; '
+            f'background:{rgba(color, 0.14)}; border:1px solid {rgba(color, 0.45)};">{emoji} {ptype}</span>')
+
+
+def image_result_card(pil_image, filename: str, results, ptype: str, index: int = 0) -> str:
+    """One self-contained card for a single scanned image: thumbnail, name,
+    Fruit/Vegetable/Nut badge, confidence bar and two runner-ups. Returns a
+    single-line-per-block HTML string (no blank lines, dedent-safe)."""
+    raw, disp, conf = results[0]
+    pct = round(conf * 100, 1)
+    color = confidence_color(pct)
+    uri = image_to_data_uri(pil_image, max_dim=360)
+    alts = "".join(
+        f'<div style="display:flex; justify-content:space-between; font-size:.74rem; color:{TEXT_DIM};">'
+        f'<span>{d}</span><span>{round(c * 100, 1)}%</span></div>'
+        for _, d, c in results[1:3]
+    )
+    name = filename if len(filename) <= 28 else filename[:25] + "…"
+    return (
+        f'<div class="glass-card reveal-up" style="padding:1rem; animation-delay:{min(index, 8) * 0.07}s; height:100%;">'
+        f'<div style="border-radius:12px; overflow:hidden; background:{BG}; aspect-ratio:1/1; margin-bottom:.8rem;">'
+        f'<img src="{uri}" style="width:100%; height:100%; object-fit:contain; display:block;"/></div>'
+        f'<div style="color:{TEXT_FAINT}; font-size:.7rem; margin-bottom:.35rem;">#{index + 1} · {name}</div>'
+        f'<div style="font-family:\'Fraunces\',serif; font-size:1.25rem; font-weight:700; color:{TEXT}; margin-bottom:.45rem;">{disp}</div>'
+        f'<div style="margin-bottom:.7rem;">{type_badge_html(ptype)}</div>'
+        f'<div style="background:{BORDER}; border-radius:999px; height:9px; overflow:hidden; margin-bottom:.35rem;">'
+        f'<div style="width:{pct}%; height:100%; background:linear-gradient(90deg, {rgba(color, 0.6)}, {color});"></div></div>'
+        f'<div style="color:{color}; font-weight:700; font-size:.9rem; margin-bottom:.55rem;">{pct}% confidence</div>'
+        f'{alts}</div>'
+    )

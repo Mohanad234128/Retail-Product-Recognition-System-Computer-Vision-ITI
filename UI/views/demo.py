@@ -15,12 +15,15 @@ each time, so the scan sequence naturally replays for every new
 prediction — which is exactly the behavior we want here.
 """
 
+import csv
+import io
 import os
 import streamlit as st
 from PIL import Image
 
 import ui_components as ui
-from model_utils import find_model_path, load_prediction_model, predict_top_k
+from class_names import produce_type
+from model_utils import find_model_path, load_prediction_model, predict_many
 
 ui.inject_global_css()
 ui.top_nav(active="demo.py")
@@ -78,10 +81,11 @@ else:
 
     col_upload, col_samples = st.columns([1.1, 1])
     with col_upload:
-        uploaded = st.file_uploader("Upload a product image", type=["png", "jpg", "jpeg"])
-
-    chosen_image = None
-    chosen_source = None
+        uploaded_files = st.file_uploader(
+            "Upload product images — one or many",
+            type=["png", "jpg", "jpeg"],
+            accept_multiple_files=True,
+        )
 
     with col_samples:
         if sample_files:
@@ -104,79 +108,126 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-    if uploaded is not None:
-        chosen_image = Image.open(uploaded)
-        chosen_source = uploaded.name
-    elif st.session_state.get("chosen_sample"):
-        chosen_image = Image.open(st.session_state["chosen_sample"])
-        chosen_source = os.path.basename(st.session_state["chosen_sample"])
+    # Collect (name, PIL image) pairs — uploads win over a chosen sample.
+    MAX_IMAGES = 24
+    items, skipped = [], []
+    for f in (uploaded_files or [])[:MAX_IMAGES]:
+        try:
+            items.append((f.name, Image.open(f).convert("RGB")))
+        except Exception:  # noqa: BLE001 - unreadable/corrupt file
+            skipped.append(f.name)
+    if not items and st.session_state.get("chosen_sample"):
+        p = st.session_state["chosen_sample"]
+        items.append((os.path.basename(p), Image.open(p).convert("RGB")))
+    if uploaded_files and len(uploaded_files) > MAX_IMAGES:
+        st.warning(f"Only the first {MAX_IMAGES} images are scanned per run.")
+    if skipped:
+        st.warning("Couldn't read: " + ", ".join(skipped))
 
-    if chosen_image is not None:
+    if items:
         st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-        img_col, result_col = st.columns([1, 1.3])
 
-        # Inference runs immediately — no artificial delay. The visual
-        # "scan, then reveal" sequencing below is entirely animation-delay.
-        results = predict_top_k(model, chosen_image, k=5)
-        top_raw, top_disp, top_conf = results[0]
+        # Every image is scanned independently (one batched forward pass,
+        # but each row of the output belongs to exactly one image).
+        all_results = predict_many(model, [im for _, im in items], k=5)
+        types = [produce_type(r[0][0]) for r in all_results]
+        n = len(items)
 
-        with img_col:
-            ui.vision_scan_frame(chosen_image, caption=chosen_source, scan_delay=0.0)
+        if n == 1:
+            name, image = items[0]
+            results = all_results[0]
+            top_raw, top_disp, top_conf = results[0]
+            img_col, result_col = st.columns([1, 1.3])
+            with img_col:
+                ui.vision_scan_frame(image, caption=name, scan_delay=0.0)
+            with result_col:
+                ui.prediction_card(top_disp, top_raw, top_conf, reveal_delay=1.9)
+                st.markdown(
+                    f'<div style="text-align:center; margin-top:.9rem;">{ui.type_badge_html(types[0])}</div>',
+                    unsafe_allow_html=True,
+                )
+            st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; margin-bottom:.6rem;">Top-5 predictions</div>',
+                unsafe_allow_html=True,
+            )
+            ui.top_k_bars(results, reveal_delay=2.2)
+        else:
+            counts = {t: types.count(t) for t in ("Fruit", "Vegetable", "Nut")}
+            avg_conf = sum(r[0][2] for r in all_results) / n * 100
+            low = sum(1 for r in all_results if r[0][2] < 0.70)
+            chips = "".join(
+                f'<span class="chip" style="margin-right:.5rem;">{ui.TYPE_STYLE[t][0]} {counts[t]} {t}{"s" if counts[t] != 1 else ""}</span>'
+                for t in counts if counts[t]
+            )
+            note = f' · <span style="color:#EF4444;">{low} below 70% — worth a second look</span>' if low else ""
+            st.markdown(
+                f'<div class="glass-card" style="padding:1.1rem 1.4rem; margin-bottom:1.2rem;">'
+                f'<div style="font-family:\'Fraunces\',serif; font-size:1.3rem; font-weight:700; margin-bottom:.5rem;">'
+                f'{n} images scanned independently</div>'
+                f'<div style="margin-bottom:.5rem;">{chips}</div>'
+                f'<div style="color:{ui.TEXT_DIM}; font-size:.82rem;">Average confidence {avg_conf:.1f}%{note}</div></div>',
+                unsafe_allow_html=True,
+            )
+            per_row = 3
+            for start in range(0, n, per_row):
+                cols = st.columns(per_row)
+                for j, col in enumerate(cols):
+                    idx = start + j
+                    if idx >= n:
+                        break
+                    with col:
+                        st.markdown(
+                            ui.image_result_card(items[idx][1], items[idx][0], all_results[idx], types[idx], idx),
+                            unsafe_allow_html=True,
+                        )
 
-        with result_col:
-            ui.prediction_card(top_disp, top_raw, top_conf, reveal_delay=1.9)
-
-        st.markdown("<div style='height:1.2rem;'></div>", unsafe_allow_html=True)
+        # Copy-able + downloadable results for every image.
+        result_lines = []
+        csv_buf = io.StringIO()
+        writer = csv.writer(csv_buf)
+        writer.writerow(["file", "prediction", "raw_label", "type", "confidence_pct", "runner_up", "runner_up_pct"])
+        for (name, _), res, t in zip(items, all_results, types):
+            raw, disp, conf = res[0]
+            ru = res[1]
+            result_lines.append(f"{name}: {disp} [{t}] — {round(conf * 100, 2)}%")
+            writer.writerow([name, disp, raw, t, round(conf * 100, 2), ru[1], round(ru[2] * 100, 2)])
         st.markdown(
-            f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; margin-bottom:.6rem;">Top-5 predictions</div>',
-            unsafe_allow_html=True,
-        )
-        ui.top_k_bars(results, reveal_delay=2.2)
-
-        # Copy-able result — st.code ships its own native copy button, so
-        # this needs no custom clipboard JS (which wouldn't reliably run
-        # inside st.markdown anyway).
-        result_lines = [f"Prediction: {top_disp} ({round(top_conf * 100, 2)}% confidence)", "Top-5:"]
-        for i, (_, disp, conf) in enumerate(results):
-            result_lines.append(f"{i + 1}. {disp} — {round(conf * 100, 2)}%")
-        st.markdown(
-            f'<div style="color:{ui.TEXT_DIM}; font-size:.8rem; margin:1.2rem 0 .4rem 0;">Copy this result:</div>',
+            f'<div style="color:{ui.TEXT_DIM}; font-size:.8rem; margin:1.2rem 0 .4rem 0;">Copy these results:</div>',
             unsafe_allow_html=True,
         )
         st.code("\n".join(result_lines), language=None)
+        st.download_button("⬇ Download results (CSV)", csv_buf.getvalue(), file_name="agrovision_results.csv", mime="text/csv")
 
-        # Session-only prediction history — a lightweight sense of
-        # continuity across a demo session, without persisting anything.
-        # Guarded against re-appending the same result on unrelated
-        # reruns (e.g. clicking something elsewhere on the page).
-        history_key = f"{chosen_source}:{top_disp}:{round(top_conf, 4)}"
+        # Session-only prediction history (guarded against rerun duplicates).
+        history_key = "|".join(f"{nm}:{r[0][1]}:{round(r[0][2], 4)}" for (nm, _), r in zip(items, all_results))
         if st.session_state.get("_last_history_key") != history_key:
             st.session_state.setdefault("prediction_history", [])
-            st.session_state["prediction_history"].insert(0, {
-                "emoji": ui.produce_emoji(top_disp.split(" ")[0].capitalize()),
-                "label": top_disp,
-                "confidence": round(top_conf * 100, 1),
-            })
-            st.session_state["prediction_history"] = st.session_state["prediction_history"][:6]
+            for (nm, _), r in zip(items, all_results):
+                st.session_state["prediction_history"].insert(0, {
+                    "emoji": ui.produce_emoji(r[0][1].split(" ")[0].capitalize()),
+                    "label": r[0][1],
+                    "confidence": round(r[0][2] * 100, 1),
+                })
+            st.session_state["prediction_history"] = st.session_state["prediction_history"][:8]
             st.session_state["_last_history_key"] = history_key
 
         history = st.session_state.get("prediction_history", [])
-        if len(history) > 1:
-            chips = "".join(
-                f'<span class="chip">{h["emoji"]} {h["label"]} · {h["confidence"]}%</span>'
-                for h in history
+        if len(history) > n:
+            chips_h = "".join(
+                f'<span class="chip">{h["emoji"]} {h["label"]} · {h["confidence"]}%</span>' for h in history
             )
             st.markdown(
                 f'<div style="margin-top:1.6rem;">'
                 f'<div style="color:{ui.TEXT_FAINT}; font-size:.75rem; text-transform:uppercase; '
                 f'letter-spacing:.06em; margin-bottom:.5rem;">This session</div>'
-                f'<div>{chips}</div></div>',
+                f'<div>{chips_h}</div></div>',
                 unsafe_allow_html=True,
             )
     else:
         st.markdown(
             f'<div style="color:{ui.TEXT_DIM}; font-size:.85rem; padding:2rem 0;">'
-            f'Upload an image or choose a sample to see a live prediction.</div>',
+            f'Upload one or more images, or choose a sample, to see live predictions.</div>',
             unsafe_allow_html=True,
         )
 

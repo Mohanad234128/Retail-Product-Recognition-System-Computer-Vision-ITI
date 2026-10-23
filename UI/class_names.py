@@ -85,3 +85,33 @@ def grouped_classes() -> "OrderedDict[str, list]":
         if name not in groups[cat]:
             groups[cat].append(name)
     return groups
+
+
+# ---------------------------------------------------------------------------
+# Produce type (culinary convention): Fruit / Vegetable / Nut.
+# Keyed by base_category(); anything not listed is a Fruit. Culinary, not
+# botanical: tomato, pepper, cucumber, eggplant, zucchini, avocado-style edge
+# cases follow how they are sold (peppers/tomatoes = vegetable, avocado = fruit).
+# ---------------------------------------------------------------------------
+VEGETABLE_BASES = {
+    "Bean", "Beetroot", "Cabbage", "Carrot", "Cauliflower", "Celery", "Corn",
+    "Cucumber", "Eggplant", "Ginger", "Kohlrabi", "Mushroom", "Onion", "Pepper",
+    "Potato", "Tomato", "Zucchini",
+}
+NUT_BASES = {
+    "Almonds", "Caju", "Chestnut", "Cocos", "Hazelnut", "Nut", "Peanut",
+    "Pistachio", "Walnut",
+}
+
+_known_bases = set(grouped_classes().keys())
+assert (VEGETABLE_BASES | NUT_BASES) <= _known_bases, (VEGETABLE_BASES | NUT_BASES) - _known_bases
+
+
+def produce_type(raw_label: str) -> str:
+    """'Fruit', 'Vegetable' or 'Nut' for a raw class label."""
+    base = base_category(raw_label)
+    if base in NUT_BASES:
+        return "Nut"
+    if base in VEGETABLE_BASES:
+        return "Vegetable"
+    return "Fruit"

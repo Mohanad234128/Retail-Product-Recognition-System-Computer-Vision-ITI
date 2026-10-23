@@ -36,7 +36,7 @@ import streamlit as st
 import ui_components as ui
 import metrics as M
 
-ui.inject_global_css()
+ui.inject_global_css(full_bleed=True)
 
 # A slim, unobtrusive theme-toggle row — landing has no top_nav (by design,
 # to stay immersive), so this is its own unique home for the toggle.

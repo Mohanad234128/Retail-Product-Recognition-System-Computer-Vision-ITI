@@ -73,3 +73,17 @@ def predict_top_k(model, pil_image: Image.Image, k: int = 5):
         raw_label = CLASS_NAMES[idx]
         results.append((raw_label, display_name(raw_label), float(result_array[idx])))
     return results
+
+
+def predict_many(model, pil_images, k: int = 5):
+    """Scans every image independently in ONE batched forward pass.
+    Returns one top-k result list per image (same shape as predict_top_k)."""
+    if not pil_images:
+        return []
+    batch = np.concatenate([prepare_image_array(im) for im in pil_images], axis=0)
+    probs = model.predict(batch, verbose=0)
+    out = []
+    for row in probs:
+        idxs = np.argsort(row)[::-1][:k]
+        out.append([(CLASS_NAMES[i], display_name(CLASS_NAMES[i]), float(row[i])) for i in idxs])
+    return out
