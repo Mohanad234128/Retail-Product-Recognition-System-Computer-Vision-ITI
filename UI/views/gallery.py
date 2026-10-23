@@ -35,13 +35,16 @@ st.markdown(
 if "gallery_query_input" not in st.session_state:
     st.session_state["gallery_query_input"] = ""
 
-surprise_col, sort_col = st.columns([1, 2])
+surprise_col, toggle_col, sort_col = st.columns([1, 1, 1.6])
 with surprise_col:
     if st.button("🎲 Surprise me", use_container_width=True):
         # Setting session_state for the not-yet-rendered text_input below,
         # earlier in this same script run, is enough — Streamlit picks it
         # up when that widget instantiates further down, no rerun needed.
         st.session_state["gallery_query_input"] = random.choice(list(grouped_classes().keys()))
+with toggle_col:
+    show_all = st.toggle("Show all variants", value=False, key="gallery_show_all",
+                         help="Expand every card to list all of its variants.")
 with sort_col:
     sort_mode = st.selectbox(
         "Sort", ["Alphabetical", "Most variants first"], label_visibility="collapsed",
@@ -82,7 +85,7 @@ if sort_mode == "Most variants first":
 else:
     groups = dict(sorted(groups.items(), key=lambda kv: kv[0].lower()))
 
-ui.class_showcase(groups)
+ui.class_showcase(groups, show_all=show_all)
 st.markdown('</div>', unsafe_allow_html=True)
 
 ui.footer_section()

@@ -329,7 +329,7 @@ with c1:
 with c2:
     st.link_button(
         "↗ View on GitHub",
-        "https://github.com/Yasser-Mogahed/Retail-Product-Recognition-System-Computer-Vision-ITI",
+        M.REPO_URL,
         use_container_width=True,
     )
 

@@ -19,11 +19,25 @@ import csv
 import io
 import os
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps
 
 import ui_components as ui
 from class_names import produce_type
 from model_utils import find_model_path, load_prediction_model, predict_many
+
+
+def load_rgb_on_white(source) -> Image.Image:
+    """Open an image and flatten any transparency onto WHITE (Fruits-360 is
+    shot on white; a plain .convert('RGB') would turn transparent pixels
+    black and hurt the prediction). Also honours phone-photo EXIF rotation."""
+    img = ImageOps.exif_transpose(Image.open(source))
+    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+        rgba = img.convert("RGBA")
+        canvas = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+        canvas.alpha_composite(rgba)
+        return canvas.convert("RGB")
+    return img.convert("RGB")
+
 
 ui.inject_global_css()
 ui.top_nav(active="demo.py")
@@ -113,12 +127,12 @@ else:
     items, skipped = [], []
     for f in (uploaded_files or [])[:MAX_IMAGES]:
         try:
-            items.append((f.name, Image.open(f).convert("RGB")))
+            items.append((f.name, load_rgb_on_white(f)))
         except Exception:  # noqa: BLE001 - unreadable/corrupt file
             skipped.append(f.name)
     if not items and st.session_state.get("chosen_sample"):
         p = st.session_state["chosen_sample"]
-        items.append((os.path.basename(p), Image.open(p).convert("RGB")))
+        items.append((os.path.basename(p), load_rgb_on_white(p)))
     if uploaded_files and len(uploaded_files) > MAX_IMAGES:
         st.warning(f"Only the first {MAX_IMAGES} images are scanned per run.")
     if skipped:
@@ -139,7 +153,7 @@ else:
             top_raw, top_disp, top_conf = results[0]
             img_col, result_col = st.columns([1, 1.3])
             with img_col:
-                ui.vision_scan_frame(image, caption=name, scan_delay=0.0)
+                ui.vision_scan_frame(image, caption="Image 1", scan_delay=0.0)
             with result_col:
                 ui.prediction_card(top_disp, top_raw, top_conf, reveal_delay=1.9)
                 st.markdown(
@@ -186,12 +200,12 @@ else:
         result_lines = []
         csv_buf = io.StringIO()
         writer = csv.writer(csv_buf)
-        writer.writerow(["file", "prediction", "raw_label", "type", "confidence_pct", "runner_up", "runner_up_pct"])
-        for (name, _), res, t in zip(items, all_results, types):
+        writer.writerow(["image", "file", "prediction", "raw_label", "type", "confidence_pct", "runner_up", "runner_up_pct"])
+        for i, ((name, _), res, t) in enumerate(zip(items, all_results, types), start=1):
             raw, disp, conf = res[0]
             ru = res[1]
-            result_lines.append(f"{name}: {disp} [{t}] — {round(conf * 100, 2)}%")
-            writer.writerow([name, disp, raw, t, round(conf * 100, 2), ru[1], round(ru[2] * 100, 2)])
+            result_lines.append(f"Image {i}: {disp} [{t}] — {round(conf * 100, 2)}%")
+            writer.writerow([f"Image {i}", name, disp, raw, t, round(conf * 100, 2), ru[1], round(ru[2] * 100, 2)])
         st.markdown(
             f'<div style="color:{ui.TEXT_DIM}; font-size:.8rem; margin:1.2rem 0 .4rem 0;">Copy these results:</div>',
             unsafe_allow_html=True,

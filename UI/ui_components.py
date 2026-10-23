@@ -241,9 +241,9 @@ def inject_global_css(full_bleed: bool = False):
     section[data-testid="stSidebar"] {{ display: none; }}
     .block-container {{
         padding-top: 0 !important; padding-bottom: 0 !important;
-        padding-left: {"0" if full_bleed else "max(1.25rem, 6vw)"} !important;
-        padding-right: {"0" if full_bleed else "max(1.25rem, 6vw)"} !important;
-        max-width: {"100%" if full_bleed else "1280px"} !important;
+        padding-left: {"0" if full_bleed else "max(1.25rem, 4.5vw)"} !important;
+        padding-right: {"0" if full_bleed else "max(1.25rem, 4.5vw)"} !important;
+        max-width: 100% !important;
         {"" if full_bleed else "margin-left: auto !important; margin-right: auto !important;"}
     }}
     /* Streamlit's outer app view also carries its own default padding on
@@ -891,7 +891,7 @@ def insight_callouts():
             """, unsafe_allow_html=True)
 
 
-def class_showcase(groups: dict):
+def class_showcase(groups: dict, show_all: bool = False):
     """Renders each base-produce category as a card in a responsive grid.
     Cards get a fixed-direction 3D tilt on hover (perspective + rotateX/Y)
     rather than a flat lift — a CSS-only stand-in for true cursor-tracked
@@ -908,8 +908,17 @@ def class_showcase(groups: dict):
     cards = ""
     for cat, names in groups.items():
         emoji = produce_emoji(cat)
-        chip_html = "".join(f'<span class="chip">{n}</span>' for n in names[:6])
-        more = f'<span class="chip">+{len(names)-6} more</span>' if len(names) > 6 else ""
+        limit = len(names) if show_all else 6
+        chip_html = "".join(f'<span class="chip">{n}</span>' for n in names[:limit])
+        if len(names) > limit:
+            rest = "".join(f'<span class="chip">{n}</span>' for n in names[6:])
+            more = (
+                f'<details class="more-wrap"><summary class="chip more-chip">'
+                f'<span class="t-more">+{len(names) - 6} more</span><span class="t-less">Show less</span></summary>'
+                f'<div class="more-body">{rest}</div></details>'
+            )
+        else:
+            more = ""
         card_html = f"""
         <div class="glass-card tilt-card fade-in">
           <div style="font-family:'Fraunces',serif; font-weight:600; color:{TEXT}; margin-bottom:.6rem; font-size:1.05rem;">
@@ -926,9 +935,18 @@ def class_showcase(groups: dict):
     st.markdown(f"""
     <style>
     .tilt-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }}
+    .more-wrap {{ margin-top: .15rem; }}
+    .more-wrap > summary {{ list-style: none; cursor: pointer; user-select: none; display: inline-block;
+        border-color: {ACCENT}66 !important; color: {ACCENT_DEEP} !important; font-weight: 600; }}
+    .more-wrap > summary::-webkit-details-marker {{ display: none; }}
+    .more-wrap > summary:hover {{ background: {ACCENT}22; }}
+    .more-wrap .t-less {{ display: none; }}
+    .more-wrap[open] .t-less {{ display: inline; }}
+    .more-wrap[open] .t-more {{ display: none; }}
+    .more-body {{ margin-top: .45rem; }}
     .glass-card.tilt-card {{ perspective: 700px; }}
     .glass-card.tilt-card:hover {{
-        transform: perspective(700px) rotateX(6deg) rotateY(-8deg) translateY(-6px) scale(1.02);
+        transform: translateY(-4px);
         border-color: {ACCENT}88; box-shadow: 0 22px 46px -18px {ACCENT}40, inset 0 1px 0 rgba(255,255,255,.04);
     }}
     </style>
@@ -937,17 +955,11 @@ def class_showcase(groups: dict):
 
 
 def footer_section():
-    team = [
-        ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
-        ("Abdallah Ali", None),
-        ("Mohanad Ibrahim", None),
-        ("Faisal Abdulaziz", None),
-        ("Marawan Mohamed", None),
-    ]
+    team = M.TEAM
     team_html = ""
     for name, link in team:
         if link:
-            team_html += f'<a class="chip" href="{link}" target="_blank" style="text-decoration:none;">{name}</a>'
+            team_html += f'<a class="chip" href="{link}" target="_blank" rel="noopener" style="text-decoration:none; color:{TEXT} !important;">{name} ↗</a>'
         else:
             team_html += f'<span class="chip">{name}</span>'
 
@@ -958,12 +970,9 @@ def footer_section():
         The showcase for Retail Product Recognition System — a graduation project from the ITI Computer Vision track.
       </p>
       <div style="margin-bottom:1.5rem;">{team_html}</div>
-      <a class="ghost-btn" href="https://github.com/Yasser-Mogahed/Retail-Product-Recognition-System-Computer-Vision-ITI" target="_blank">
+      <a class="ghost-btn" href="{M.REPO_URL}" target="_blank">
         ↗ View source on GitHub
       </a>
-      <p style="color:{TEXT_FAINT}; font-size:.72rem; margin-top:2rem;">
-        Add your portfolio / LinkedIn links in <code>ui_components.py → footer_section()</code>.
-      </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -998,12 +1007,11 @@ def image_result_card(pil_image, filename: str, results, ptype: str, index: int 
         f'<span>{d}</span><span>{round(c * 100, 1)}%</span></div>'
         for _, d, c in results[1:3]
     )
-    name = filename if len(filename) <= 28 else filename[:25] + "…"
     return (
         f'<div class="glass-card reveal-up" style="padding:1rem; animation-delay:{min(index, 8) * 0.07}s; height:100%;">'
         f'<div style="border-radius:12px; overflow:hidden; background:{BG}; aspect-ratio:1/1; margin-bottom:.8rem;">'
         f'<img src="{uri}" style="width:100%; height:100%; object-fit:contain; display:block;"/></div>'
-        f'<div style="color:{TEXT_FAINT}; font-size:.7rem; margin-bottom:.35rem;">#{index + 1} · {name}</div>'
+        f'<div style="color:{TEXT_DIM}; font-size:.78rem; font-weight:600; letter-spacing:.04em; margin-bottom:.35rem;">Image {index + 1}</div>'
         f'<div style="font-family:\'Fraunces\',serif; font-size:1.25rem; font-weight:700; color:{TEXT}; margin-bottom:.45rem;">{disp}</div>'
         f'<div style="margin-bottom:.7rem;">{type_badge_html(ptype)}</div>'
         f'<div style="background:{BORDER}; border-radius:999px; height:9px; overflow:hidden; margin-bottom:.35rem;">'

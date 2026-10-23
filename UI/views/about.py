@@ -37,13 +37,7 @@ st.markdown(f"""
 st.markdown('<div class="section-label">Team</div>', unsafe_allow_html=True)
 st.markdown('<div class="section-title" style="font-size:1.6rem;">Built by</div>', unsafe_allow_html=True)
 
-team = [
-    ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
-    ("Abdallah Ali", None),
-    ("Mohanad Ibrahim", None),
-    ("Faisal Abdulaziz", None),
-    ("Marawan Mohamed", None),
-]
+team = M.TEAM
 cols = st.columns(len(team))
 for i, (col, (name, link)) in enumerate(zip(cols, team)):
     with col:
@@ -58,6 +52,6 @@ for i, (col, (name, link)) in enumerate(zip(cols, team)):
 st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
 st.link_button(
     "↗ View source on GitHub",
-    "https://github.com/Yasser-Mogahed/Retail-Product-Recognition-System-Computer-Vision-ITI",
+    M.REPO_URL,
 )
 st.markdown('</div>', unsafe_allow_html=True)

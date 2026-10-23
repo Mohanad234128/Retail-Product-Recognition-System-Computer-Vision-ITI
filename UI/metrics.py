@@ -79,3 +79,14 @@ WEAKEST_CLASSES = [
     ('Cherry Wax Red 1', 0.23),
     ('Mango Red 1', 0.36),
 ]
+
+
+# --- Team (GitHub handles from the project README) -----------------------------
+REPO_URL = "https://github.com/Mohanad234128/Retail-Product-Recognition-System-Computer-Vision-ITI"
+TEAM = [
+    ("Yasser Mogahed", "https://github.com/Yasser-Mogahed"),
+    ("Abdallah Ali", "https://github.com/abdallah-farahat"),
+    ("Mohanad Ibrahim", "https://github.com/Mohanad234128"),
+    ("Faisal Abdulaziz", "https://github.com/Wttcss"),
+    ("Marawan Mohamed", "https://github.com/luka666-grim"),
+]
