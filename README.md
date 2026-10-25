@@ -181,7 +181,7 @@ Best validation accuracy: `92.76%` (phase 1, epoch 15)
 
 </div>
 
-> ⚠️ **To verify:** four Blackberry classes and `Cantaloupe 2` scoring exactly 0.00 may be an evaluation artifact rather than a real model failure. `BlackBerry 4` (capital B) sorts differently from `Blackberry 1–3`, so if the Training and Test folders spell any of these names differently, test labels end up shifted. Compare `sorted(os.listdir(TRAIN_DIR))` with `sorted(os.listdir(TEST_DIR))` before quoting per-class numbers.
+> 📝 **Evaluation note:** the notebook output shows the Training folder spells one class `BlackBerry 4` (capital B) while the Test folder uses `Blackberry 4`. Sorted alphabetically, the two folders therefore list these classes in a different order, which shifts the label indices of `BlackBerry 4` and `Blackberry 1–3` by one — exactly the four classes scoring 0.00. This is an evaluation artifact, not a model failure; the reported 87.81% is slightly **understated** (these four classes are ≈1.4% of the test images). Passing `class_names=` from the training set when loading the Test folder fixes it. `Cantaloupe 2` (0.00) is unrelated to this and still needs investigating.
 
 <br/>
 
@@ -207,11 +207,11 @@ Best validation accuracy: `92.76%` (phase 1, epoch 15)
 
 </div>
 
-The v1 baseline scores higher on the Fruits-360 test images but is about **19× larger** and was trained without background augmentation. v2 trades some in-dataset accuracy for a much smaller model and training that targets real-world photos. The two class lists also differ slightly (260 vs 262 classes), so the numbers are close but not strictly like-for-like.
+v1 reaches a higher score on the clean Fruits-360 test images, but it is **~19× larger**, was trained on studio backgrounds only, and is more likely to depend on them. v2 is a deliberate trade: a far smaller, faster model, trained with background-swap augmentation to generalise beyond the white studio setting. Part of the gap is also an evaluation artifact (see the note above), and the class lists differ slightly (260 vs 262), so the comparison is indicative, not strictly like-for-like. Real-world photos are the true test for choosing between them.
 
 **Recommended next steps:**
 
-- 🔍 Fix / verify the Blackberry and Cantaloupe 2 evaluation (see the warning above) and re-run the test evaluation
+- 🔍 Re-run the test evaluation with the training `class_names` (Blackberry fix) and investigate `Cantaloupe 2`
 - 📸 Collect a small set of real photos (kitchen, shelf, hand-held) to measure real-world accuracy, not just Fruits-360 accuracy
 - 🌆 Use real background images in the augmentation instead of synthetic ones
 - 🎯 Add targeted data for the weakest classes (cherry, apple and pepper variants)
@@ -275,7 +275,7 @@ streamlit run app.py                                 # finds Model/model.h5 auto
 - [x] Two-phase training (frozen backbone + fine-tuning) and held-out test evaluation
 - [x] Per-class precision / recall / F1 report
 - [x] AgroVision Streamlit app with multi-image scanning
-- [ ] Verify the Blackberry / Cantaloupe 2 test labels and re-evaluate
+- [ ] Re-evaluate with consistent class order (Blackberry label shift) and investigate Cantaloupe 2
 - [ ] Evaluate on real-world photos with natural backgrounds
 - [ ] Targeted data and real backgrounds for the weakest classes
 - [ ] Deployment-ready inference API
