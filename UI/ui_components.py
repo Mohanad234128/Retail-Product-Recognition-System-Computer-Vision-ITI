@@ -955,24 +955,14 @@ def class_showcase(groups: dict, show_all: bool = False):
 
 
 def footer_section():
-    team = M.TEAM
-    team_html = ""
-    for name, link in team:
-        if link:
-            team_html += f'<a class="chip" href="{link}" target="_blank" rel="noopener" style="text-decoration:none; color:{TEXT} !important;">{name} ↗</a>'
-        else:
-            team_html += f'<span class="chip">{name}</span>'
-
+    """Slim footer: brand, track, one source link. The full team lives on the About page."""
     st.markdown(f"""
-    <div style="border-top:1px solid {BORDER}; padding:3rem 6vw; text-align:center; margin-top:2rem;">
+    <div style="border-top:1px solid {BORDER}; padding:2.2rem 6vw 2.6rem 6vw; text-align:center; margin-top:2rem;">
       <div class="section-label">AgroVision</div>
       <p style="color:{TEXT_DIM}; font-size:.85rem; margin:.8rem 0 1.2rem 0;">
-        The showcase for Retail Product Recognition System — a graduation project from the ITI Computer Vision track.
+        A graduation project from the ITI {M.TRACK}.
       </p>
-      <div style="margin-bottom:1.5rem;">{team_html}</div>
-      <a class="ghost-btn" href="{M.REPO_URL}" target="_blank">
-        ↗ View source on GitHub
-      </a>
+      <a class="ghost-btn" href="{M.REPO_URL}" target="_blank" rel="noopener">↗ View source on GitHub</a>
     </div>
     """, unsafe_allow_html=True)
 

@@ -20,7 +20,7 @@ st.markdown(f"""
   <p style="color:{ui.TEXT_DIM}; line-height:1.7; font-size:.95rem;">
     <b style="color:{ui.TEXT};">AgroVision</b> is the interactive showcase for the
     <b style="color:{ui.TEXT};">Retail Product Recognition System</b> — a graduation project from the
-    ITI Computer Vision track. It fine-tunes an ImageNet-pretrained EfficientNetB0 on a
+    ITI {M.TRACK}. It fine-tunes an ImageNet-pretrained EfficientNetB0 on a
     {M.NUM_CLASSES}-category fresh-produce dataset (Fruits-360), used here as a
     representative stand-in for the broader problem of automated product recognition in retail
     shelf, checkout, and inventory pipelines.

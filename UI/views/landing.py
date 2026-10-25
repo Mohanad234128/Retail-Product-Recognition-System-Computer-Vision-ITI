@@ -276,7 +276,7 @@ st.markdown(f"""
 <div class="hero-inner">
 <div class="hero-text">
 <div class="brand-wordmark">{ui.logo_svg(30)} <span>Agro<b>Vision</b></span></div>
-<div class="badge-pill">🎓 ITI Computer Vision Graduation Project</div>
+<div class="badge-pill">🎓 ITI {M.TRACK} · Graduation Project</div>
 <div class="kicker">Fresh Produce Recognition</div>
 <h1 class="headline">A CNN-based computer vision system for multi-class <span class="grad">fruit, vegetable &amp; nut recognition</span>.</h1>
 <p class="sub">Transfer learning on {M.TOTAL_TRAIN_FOLDER_IMGS:,} images, hardened with background-swap augmentation — a proof of concept for automated recognition at retail scale.</p>

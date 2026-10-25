@@ -90,3 +90,5 @@ TEAM = [
     ("Faisal Abdulaziz", "https://github.com/Wttcss"),
     ("Marawan Mohamed", "https://github.com/luka666-grim"),
 ]
+
+TRACK = "AI and Machine Learning Foundation Track"
