@@ -2,7 +2,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=260&section=header&text=Retail%20Product%20Recognition&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Computer%20Vision%20%E2%80%A2%20Deep%20Learning%20%E2%80%A2%20Retail%20Automation&descAlignY=58&descSize=18" width="100%"/>
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&duration=2800&pause=900&color=2C5364&center=true&vCenter=true&width=760&lines=Classifying+260+Retail+Products+from+Raw+Pixels;A+CNN+Built+From+Scratch+in+Keras;94.18%25+Validation+Accuracy+in+Just+5+Epochs;From+Fruits-360+Dataset+to+Deployable+Vision+Model" alt="Typing SVG" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&duration=2800&pause=900&color=2C5364&center=true&vCenter=true&width=760&lines=Classifying+262+Fruits%2C+Vegetables+%26+Nuts+from+Raw+Pixels;EfficientNetB0+Transfer+Learning+in+Keras;87.81%25+Accuracy+on+Held-Out+Test+Images;From+Fruits-360+to+the+AgroVision+Streamlit+App" alt="Typing SVG" />
 
 <br/>
 
@@ -17,6 +17,7 @@
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
 ![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626?style=flat-square&logo=jupyter&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
 ![Dataset](https://img.shields.io/badge/Dataset-Fruits--360-8BC34A?style=flat-square&logo=kaggle&logoColor=white)
 ![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
 
@@ -26,9 +27,9 @@
 
 ## 🛒 Overview
 
-Manual product recognition in retail and warehouse environments is **slow, error-prone, and impossible to scale**. This project builds a **Convolutional Neural Network from scratch** that looks at a single product image and predicts its category — the kind of building block that powers automated checkout, sorting, and inventory-tracking pipelines.
+Manual product recognition in retail and warehouse environments is **slow, error-prone, and impossible to scale**. This project fine-tunes a pretrained **EfficientNetB0** convolutional network to look at a single product image and predict its category — the kind of building block that powers automated checkout, sorting, and inventory-tracking pipelines.
 
-As a representative retail product domain, the system is trained and validated on the **Fruits‑360** dataset — **260 product categories**, **182,945 images**, captured from multiple rotation angles against a consistent background.
+As a representative retail product domain, the system is trained and evaluated on the **Fruits‑360** dataset — **262 categories** of fruits, vegetables and nuts, **184,838 images** (138,642 training + 46,196 test) captured from multiple rotation angles against a uniform background. A companion Streamlit app, **AgroVision**, lets anyone scan one or many images and see the predicted class, its type (Fruit / Vegetable / Nut) and the model's confidence.
 
 <div align="center">
 <img src="https://capsule-render.vercel.app/api?type=rect&color=0:2C5364,100:0F2027&height=3&width=100%25" width="100%"/>
@@ -43,6 +44,7 @@ As a representative retail product domain, the system is trained and validated o
 - [Training Configuration](#-training-configuration)
 - [Results](#-results)
 - [Key Insights](#-key-insights)
+- [AgroVision App](#-agrovision-app)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
 - [Roadmap](#-roadmap)
@@ -60,11 +62,11 @@ As a representative retail product domain, the system is trained and validated o
 | Attribute | Value |
 |---|---|
 | **Source** | [Kaggle — Fruits‑360](https://www.kaggle.com/datasets/moltean/fruits) (`moltean/fruits`) |
-| **Categories** | 260 fruits, vegetables & nuts |
-| **Training images** | 137,221 |
-| **Test images** | 45,724 |
-| **Image size** | 100 × 100 px, RGB |
-| **Capture style** | Multiple rotation angles per physical sample, uniform background & lighting |
+| **Categories** | 262 fruits, vegetables & nuts |
+| **Training folder** | 138,642 images → split 85 / 15 into **117,846 train** and **20,796 validation** |
+| **Test images** | 46,196 (kept separate, used only for the final evaluation) |
+| **Native image size** | 100 × 100 px, RGB (resized to 128 × 128 for the model) |
+| **Capture style** | Multiple rotation angles per physical sample, uniform white background & lighting |
 
 </div>
 
@@ -74,41 +76,37 @@ As a representative retail product domain, the system is trained and validated o
 
 ```mermaid
 flowchart LR
-    A[Raw Fruits-360 Images] --> B[ImageDataGenerator]
-    B --> C[Rescale 0-1]
-    C --> D{Split}
-    D -->|Train| E[Augmentation:\nShear • Flip H/V • Zoom]
-    D -->|Test| F[Rescale only]
-    E --> G[CNN - Trained from Scratch]
-    F --> H[Validation]
-    G --> H
-    H --> I[Product Category\n260 classes]
+    A[Fruits-360 images<br/>100x100] --> B[Resize to 128x128<br/>raw 0-255 pixels]
+    B --> C{Split}
+    C -->|Train 85%| D[Background swap +<br/>GPU augmentation]
+    C -->|Val 15% / Test| E[No augmentation]
+    D --> F[EfficientNetB0 backbone<br/>+ dense head]
+    E --> G[Evaluation]
+    F --> G
+    G --> H[Product category<br/>262 classes]
 ```
 
-Images are streamed straight from the folder structure with Keras' `ImageDataGenerator`. Pixel values are rescaled to `[0, 1]`, and the **training set only** is augmented (shear, horizontal flip, vertical flip, zoom) to improve generalization — the test set is rescaled only, keeping evaluation unbiased.
+Images are read straight from the folder structure with `image_dataset_from_directory`. Pixels stay in the raw `0–255` range — EfficientNetB0 rescales and normalises internally, so dividing by 255 would feed it near-zero inputs. The **training set only** is augmented: roughly half of the white studio backgrounds are swapped for random colour / gradient / noise backgrounds, then the images get a horizontal flip, small rotation, zoom and shift, brightness and contrast jitter, and mild Gaussian noise. Validation and test images are never augmented, keeping evaluation unbiased.
 
 <br/>
 
 ## 🧠 Model Architecture
 
-A CNN built **from scratch** with the Keras Sequential API — no pretrained backbone, every filter learned from raw pixels up.
+**Transfer learning** with an ImageNet-pretrained **EfficientNetB0** backbone and a small dense classification head, built with the Keras Functional API.
 
 <div align="center">
 
 | Layer | Output Shape | Parameters |
 |---|---|---|
-| Conv2D (128 filters, 3×3) | (98, 98, 128) | 3,584 |
-| MaxPooling2D | (49, 49, 128) | 0 |
-| Conv2D (64 filters, 3×3) | (47, 47, 64) | 73,792 |
-| Conv2D (32 filters, 3×3) | (45, 45, 32) | 18,464 |
-| MaxPooling2D | (22, 22, 32) | 0 |
-| Dropout (0.5) | (22, 22, 32) | 0 |
-| Flatten | (15,488) | 0 |
-| Dense (5000, ReLU) | (5000) | 77,445,000 |
-| Dense (1000, ReLU) | (1000) | 5,001,000 |
-| Dense (260, Softmax) | (260) | 260,260 |
+| Input | (128, 128, 3) | 0 |
+| EfficientNetB0 (ImageNet weights, `include_top=False`) | (4, 4, 1280) | 4,049,571 |
+| GlobalAveragePooling2D | (1280) | 0 |
+| Dropout (0.3) | (1280) | 0 |
+| Dense (256, ReLU) | (256) | 327,936 |
+| Dropout (0.2) | (256) | 0 |
+| Dense (262, Softmax, float32) | (262) | 67,334 |
 
-**Total trainable parameters: 82,802,100**
+**Total parameters: 4,444,841** · trainable in phase 1: **395,270** (the head)
 
 </div>
 
@@ -116,15 +114,19 @@ A CNN built **from scratch** with the Keras Sequential API — no pretrained bac
 
 ## ⚙️ Training Configuration
 
+Training ran in two phases on Kaggle (2 × Tesla T4, mixed precision `float16`).
+
 <div align="center">
 
-| Setting | Value |
-|---|---|
-| Optimizer | SGD (Stochastic Gradient Descent) |
-| Loss function | Categorical Crossentropy |
-| Batch size | 64 |
-| Callback | `EarlyStopping` (monitor: val_accuracy, patience: 5) |
-| Environment | Local machine — Windows, **CPU-based** training |
+| Setting | Phase 1 — frozen backbone | Phase 2 — fine-tuning |
+|---|---|---|
+| Trainable layers | Dense head only | Head + top 30 backbone layers |
+| Optimizer | Adam, lr = 1e-3 | Adam, lr = 1e-5 |
+| Max epochs | 15 | 10 |
+| Epochs actually run | 15 | 6 (early stopping) |
+| Batch size | 128 | 128 |
+| Loss | Categorical crossentropy | Categorical crossentropy |
+| Callbacks | `ReduceLROnPlateau` (val_loss, ×0.2, patience 2) · `EarlyStopping` (val_loss, patience 5, restore best) · `ModelCheckpoint` (best val_accuracy) | same |
 
 </div>
 
@@ -132,37 +134,102 @@ A CNN built **from scratch** with the Keras Sequential API — no pretrained bac
 
 ## 📊 Results
 
-The model was trained for **5 epochs** before the run was stopped, with both train and validation metrics climbing steadily and no sign of divergence — the model was still learning productively.
+<div align="center">
+
+### 🏆 Held-out test accuracy: `87.81%` · test loss `0.5005` (46,196 images)
+
+Best validation accuracy: `92.76%` (phase 1, epoch 15)
+
+</div>
+
+**Phase 1 — frozen backbone**
 
 <div align="center">
 
-| Epoch | Train Acc | Train Loss | Val Acc | Val Loss |
-|:---:|:---:|:---:|:---:|:---:|
-| 1 | 58.64% | 1.3412 | 79.57% | 0.8660 |
-| 2 | 80.45% | 0.6135 | 87.13% | 0.7119 |
-| 3 | 88.08% | 0.3669 | 91.12% | 0.6364 |
-| 4 | 91.34% | 0.2549 | 91.16% | 0.6113 |
-| **5** | **93.38%** | **0.1859** | **94.18%** | **0.5340** |
-
-### 🏆 Final Validation Accuracy: `94.18%` · Final Validation Loss: `0.534`
+| Epoch | Train Acc | Val Acc | Val Loss |
+|:---:|:---:|:---:|:---:|
+| 1 | 59.89% | 83.43% | 0.5321 |
+| 2 | 77.09% | 86.29% | 0.3955 |
+| 3 | 80.31% | 90.05% | 0.2932 |
+| 4 | 81.91% | 88.15% | 0.3427 |
+| 5 | 82.91% | 90.69% | 0.2620 |
+| 6 | 83.52% | 90.03% | 0.2693 |
+| 7 | 84.08% | 90.28% | 0.2778 |
+| 8 | 85.66% | 92.72% | 0.2100 |
+| 9 | 86.14% | 91.38% | 0.2382 |
+| 10 | 86.60% | 91.71% | 0.2131 |
+| 11 | 87.00% | 92.40% | 0.2032 |
+| 12 | 87.07% | 92.19% | 0.2052 |
+| 13 | 87.18% | 92.55% | 0.2007 |
+| 14 | 87.26% | 92.22% | 0.2037 |
+| **15** | **87.25%** | **92.76%** | **0.1993** |
 
 </div>
+
+**Phase 2 — fine-tuning the top 30 backbone layers** (6 epochs): validation accuracy stayed between **92.54% and 92.69%** and never beat the phase 1 checkpoint, so early stopping ended the phase; the saved `best_fruits_model.keras` checkpoint tracks the best validation accuracy (phase 1).
+
+**Per-class results (test set):** macro F1 ≈ **0.87**; **122** of 262 classes score F1 ≥ 0.95 and **161** score ≥ 0.90, while **19** classes fall below 0.60.
+
+<div align="center">
+
+| Weakest classes (test F1) | |
+|---|---|
+| `BlackBerry 4`, `Blackberry 1`, `Blackberry 2`, `Blackberry 3`, `Cantaloupe 2` | 0.00 |
+| `Apple Crimson Snow 1` | 0.11 |
+| `Pepper Yellow 1` | 0.12 |
+| `Cherry Wax Red 3` · `Cherry Wax Red 1` | 0.16 · 0.23 |
+
+</div>
+
+> ⚠️ **To verify:** four Blackberry classes and `Cantaloupe 2` scoring exactly 0.00 may be an evaluation artifact rather than a real model failure. `BlackBerry 4` (capital B) sorts differently from `Blackberry 1–3`, so if the Training and Test folders spell any of these names differently, test labels end up shifted. Compare `sorted(os.listdir(TRAIN_DIR))` with `sorted(os.listdir(TEST_DIR))` before quoting per-class numbers.
 
 <br/>
 
 ## 💡 Key Insights
 
-- A **from-scratch CNN** reached **94.18% validation accuracy across 260 classes in only 5 epochs** — strong evidence the architecture and augmentation strategy fit the task well.
-- Training and validation curves were still rising with no plateau, meaning **more epochs would likely push accuracy even higher**.
-- Compared to transfer learning (e.g., **MobileNetV2** pretrained on ImageNet), a from-scratch CNN needs more epochs and compute since it learns low-level visual features from zero instead of reusing features from a much larger corpus.
+- **87.81% on a separate test set across 262 classes**, using a model with only **4.4 M parameters**.
+- **Validation (92.76%) is higher than test (87.81%)** because validation is a random 15% slice of the training folders, where near-identical rotations of the same fruit can fall on both sides of the split. The test set is the fairer number.
+- **Train accuracy sits below validation accuracy** because it is measured on heavily augmented images with dropout active, while validation is clean.
+- **Fine-tuning did not help here:** unfreezing the top 30 backbone layers left validation flat, so the frozen-backbone head was the better stopping point.
+- **Background-swap augmentation** was added because every Fruits-360 image has the same white studio background; it is meant to stop the model from treating "white surroundings" as part of the class and to help on real photos.
+
+**Baseline comparison**
+
+<div align="center">
+
+| | Baseline (v1) | Final (v2) |
+|---|---|---|
+| Model | CNN from scratch (3 conv + 2 dense) | EfficientNetB0 transfer learning |
+| Parameters | 82.8 M | 4.4 M |
+| Classes | 260 | 262 |
+| Input | 100×100, rescaled to [0, 1] | 128×128, raw 0–255 |
+| Accuracy on the test images | 94.18% (5 epochs, 45,724 images) | 87.81% (46,196 images) |
+
+</div>
+
+The v1 baseline scores higher on the Fruits-360 test images but is about **19× larger** and was trained without background augmentation. v2 trades some in-dataset accuracy for a much smaller model and training that targets real-world photos. The two class lists also differ slightly (260 vs 262 classes), so the numbers are close but not strictly like-for-like.
 
 **Recommended next steps:**
 
-- 🔁 Continue training beyond 5 epochs — the model hadn't plateaued
-- 🧪 Evaluate on an independently sourced, held-out test set for real-world generalization
-- 📈 Run a per-class confusion matrix / precision–recall breakdown to spot visually similar categories the model confuses
-- 🪶 Explore MobileNetV2 transfer learning as a lighter, faster-converging alternative
-- ⚡ Move training to GPU to cut training time substantially
+- 🔍 Fix / verify the Blackberry and Cantaloupe 2 evaluation (see the warning above) and re-run the test evaluation
+- 📸 Collect a small set of real photos (kitchen, shelf, hand-held) to measure real-world accuracy, not just Fruits-360 accuracy
+- 🌆 Use real background images in the augmentation instead of synthetic ones
+- 🎯 Add targeted data for the weakest classes (cherry, apple and pepper variants)
+- 📈 Try a larger EfficientNet variant or a higher input resolution
+
+<br/>
+
+## 🌱 AgroVision App
+
+**AgroVision** is a multi-page Streamlit showcase for the model (folder `UI/`):
+
+- 🏠 **Home** — animated landing page with the headline metrics
+- 🔍 **Live Demo** — upload **one or many** images; every image is scanned independently and gets its own card with the predicted name, a **Fruit / Vegetable / Nut** label, a confidence bar and the runner-up guesses, plus copyable results and a CSV download
+- 📊 **Model Insights** — training curves for both phases, parameter breakdown and the weakest classes
+- 🗂 **Class Gallery** — all 262 classes grouped by produce type, searchable
+- ✨ **About** — project background and team, with a light / dark theme toggle on every page
+
+All numbers shown in the app come from a single file, `UI/metrics.py`.
 
 <br/>
 
@@ -171,9 +238,11 @@ The model was trained for **5 epochs** before the run was stopped, with both tra
 ```
 Retail-Product-Recognition-System-Computer-Vision-ITI/
 ├── Docs/            # Written report & documentation
-├── NoteBook/         # Jupyter notebook(s) — data prep, model, training
-├── Presentation/     # Project presentation slides
-├── requirements.txt  # Python dependencies
+├── Model/           # model.h5 and best_fruits_model.keras (EfficientNetB0, 262 classes)
+├── NoteBook/        # iti-gradution.ipynb (v1 baseline CNN) · iti-gradution-final.ipynb (EfficientNetB0) · test-the-model.ipynb
+├── Presentation/    # Project presentation slides
+├── UI/              # AgroVision Streamlit app (app.py, metrics.py, views/ ...)
+├── requirements.txt # Python dependencies
 └── README.md
 ```
 
@@ -186,28 +255,30 @@ Retail-Product-Recognition-System-Computer-Vision-ITI/
 git clone https://github.com/Mohanad234128/Retail-Product-Recognition-System-Computer-Vision-ITI.git
 cd Retail-Product-Recognition-System-Computer-Vision-ITI
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Run the AgroVision app
+cd UI
+python -m venv .venv && .venv\Scripts\activate      # Windows  (macOS/Linux: source .venv/bin/activate)
+python -m pip install -r requirements.txt            # needs TensorFlow >= 2.20
+streamlit run app.py                                 # finds Model/model.h5 automatically
 
-# 3. Download the Fruits-360 dataset from Kaggle
+# 3. (Optional) Retrain: download Fruits-360 from Kaggle
 #    https://www.kaggle.com/datasets/moltean/fruits
-
-# 4. Open the notebook and run it end-to-end
-jupyter notebook NoteBook/
+#    then run NoteBook/iti-gradution-final.ipynb end-to-end (GPU recommended)
 ```
 
 <br/>
 
 ## 🗺 Roadmap
 
-- [x] Data pipeline with augmentation
-- [x] From-scratch CNN architecture
-- [x] Baseline training & evaluation (5 epochs)
-- [ ] Extended training to convergence
-- [ ] Per-class confusion matrix analysis
-- [ ] MobileNetV2 transfer-learning comparison
-- [ ] GPU-accelerated training run
-- [ ] Deployment-ready inference script / API
+- [x] Baseline from-scratch CNN (v1, 5 epochs)
+- [x] EfficientNetB0 transfer learning with background-swap augmentation (v2)
+- [x] Two-phase training (frozen backbone + fine-tuning) and held-out test evaluation
+- [x] Per-class precision / recall / F1 report
+- [x] AgroVision Streamlit app with multi-image scanning
+- [ ] Verify the Blackberry / Cantaloupe 2 test labels and re-evaluate
+- [ ] Evaluate on real-world photos with natural backgrounds
+- [ ] Targeted data and real backgrounds for the weakest classes
+- [ ] Deployment-ready inference API
 
 <br/>
 
@@ -218,9 +289,10 @@ jupyter notebook NoteBook/
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![Keras](https://img.shields.io/badge/Keras-D00000?style=for-the-badge&logo=keras&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
+![Plotly](https://img.shields.io/badge/Plotly-3F4F75?style=for-the-badge&logo=plotly&logoColor=white)
 ![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
-![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=for-the-badge&logo=plotly&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white)
 ![Jupyter](https://img.shields.io/badge/Jupyter-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
 
 </div>
@@ -259,7 +331,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 <div align="center">
 
-Built as part of the **ITI Computer Vision** track.
+Built as part of the **ITI AI and Machine Learning Foundation Track**.
 
 
 <br/>
