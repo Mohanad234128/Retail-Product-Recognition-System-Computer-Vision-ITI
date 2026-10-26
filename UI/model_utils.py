@@ -138,8 +138,13 @@ def grad_cam(model, pil_images, class_indices=None):
 
 def heatmap_overlay(pil_image: Image.Image, cam: np.ndarray, alpha: float = 0.55, size: int = 360) -> Image.Image:
     """Blends a jet-like heatmap over the image (cool = ignored, hot = decisive)."""
-    base = pil_image.convert("RGB").resize((size, size), Image.BICUBIC)
-    c = np.array(Image.fromarray((cam * 255).astype("uint8")).resize((size, size), Image.BICUBIC)) / 255.0
+    # Keep the photo's real proportions (the model squashes to 128x128 internally,
+    # but showing a squashed picture makes tall/wide photos look distorted).
+    w0, h0 = pil_image.size
+    scale = size / max(w0, h0)
+    tw, th = max(1, round(w0 * scale)), max(1, round(h0 * scale))
+    base = pil_image.convert("RGB").resize((tw, th), Image.BICUBIC)
+    c = np.array(Image.fromarray((cam * 255).astype("uint8")).resize((tw, th), Image.BICUBIC)) / 255.0
     r = np.clip(1.5 - np.abs(4 * c - 3), 0, 1)
     g = np.clip(1.5 - np.abs(4 * c - 2), 0, 1)
     b = np.clip(1.5 - np.abs(4 * c - 1), 0, 1)
