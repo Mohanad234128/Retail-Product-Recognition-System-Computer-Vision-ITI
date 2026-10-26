@@ -1,9 +1,6 @@
 <div align="center">
 
 <img src="assets/hero.svg" alt="AgroVision — a neural network that recognises 262 fruits, vegetables and nuts" width="100%"/>
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=260&section=header&text=Retail%20Product%20Recognition&fontSize=42&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Computer%20Vision%20%E2%80%A2%20Deep%20Learning%20%E2%80%A2%20Retail%20Automation&descAlignY=58&descSize=18" width="100%"/>
-
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=24&duration=2800&pause=900&color=2C5364&center=true&vCenter=true&width=760&lines=Classifying+262+Fruits%2C+Vegetables+%26+Nuts+from+Raw+Pixels;EfficientNetB0+Transfer+Learning+in+Keras;87.81%25+Accuracy+on+Held-Out+Test+Images;From+Fruits-360+to+the+AgroVision+Streamlit+App" alt="Typing SVG" />
 
 <br/>
 
@@ -16,13 +13,6 @@
 <br/><br/>
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=2600&pause=900&color=34D399&center=true&vCenter=true&width=820&lines=A+machine+that+learned+to+see+262+kinds+of+produce;Every+image+%E2%86%92+184%2C838+pixel+grids+%E2%86%92+one+confident+answer;Transfer+learning+%C2%B7+augmentation+%C2%B7+4.4M+parameters;87.81%25+on+images+it+has+never+seen" alt="typing"/>
-![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
-![NumPy](https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white)
-![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626?style=flat-square&logo=jupyter&logoColor=white)
-![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)
-![Dataset](https://img.shields.io/badge/Dataset-Fruits--360-8BC34A?style=flat-square&logo=kaggle&logoColor=white)
-![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
 
 <br/><br/>
 
@@ -55,21 +45,6 @@ As a representative retail product domain, the system is trained and evaluated o
 - [Roadmap](#-roadmap) · [Tech Stack](#-tech-stack) · [Team](#-team) · [Contributing](#-contributing)
 
 </details>
-- [Overview](#-overview)
-- [Dataset](#-dataset)
-- [Pipeline](#-pipeline)
-- [Model Architecture](#-model-architecture)
-- [Training Configuration](#-training-configuration)
-- [Results](#-results)
-- [Key Insights](#-key-insights)
-- [AgroVision App](#-agrovision-app)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Roadmap](#-roadmap)
-- [Tech Stack](#-tech-stack)
-- [Team](#-team)
-- [Contributing](#-contributing)
-- [Contact](#-contact)
 
 <br/>
 
@@ -206,55 +181,6 @@ Best validation accuracy: `92.76%` (phase 1, epoch 15)
 
 <details>
 <summary><b>Phase 1 — per-epoch numbers (frozen backbone)</b></summary>
-<div align="center">
-
-### 🏆 Held-out test accuracy: `87.81%` · test loss `0.5005` (46,196 images)
-
-Best validation accuracy: `92.76%` (phase 1, epoch 15)
-
-</div>
-
-**Phase 1 — frozen backbone**
-
-<div align="center">
-
-| Epoch | Train Acc | Val Acc | Val Loss |
-|:---:|:---:|:---:|:---:|
-| 1 | 59.89% | 83.43% | 0.5321 |
-| 2 | 77.09% | 86.29% | 0.3955 |
-| 3 | 80.31% | 90.05% | 0.2932 |
-| 4 | 81.91% | 88.15% | 0.3427 |
-| 5 | 82.91% | 90.69% | 0.2620 |
-| 6 | 83.52% | 90.03% | 0.2693 |
-| 7 | 84.08% | 90.28% | 0.2778 |
-| 8 | 85.66% | 92.72% | 0.2100 |
-| 9 | 86.14% | 91.38% | 0.2382 |
-| 10 | 86.60% | 91.71% | 0.2131 |
-| 11 | 87.00% | 92.40% | 0.2032 |
-| 12 | 87.07% | 92.19% | 0.2052 |
-| 13 | 87.18% | 92.55% | 0.2007 |
-| 14 | 87.26% | 92.22% | 0.2037 |
-| **15** | **87.25%** | **92.76%** | **0.1993** |
-
-</div>
-
-**Phase 2 — fine-tuning the top 30 backbone layers** (6 epochs): validation accuracy stayed between **92.54% and 92.69%** and never beat the phase 1 checkpoint, so early stopping ended the phase; the saved `best_fruits_model.keras` checkpoint tracks the best validation accuracy (phase 1).
-
-**Per-class results (test set):** macro F1 ≈ **0.87**; **122** of 262 classes score F1 ≥ 0.95 and **161** score ≥ 0.90, while **19** classes fall below 0.60.
-
-<div align="center">
-
-| Weakest classes (test F1) | |
-|---|---|
-| `BlackBerry 4`, `Blackberry 1`, `Blackberry 2`, `Blackberry 3`, `Cantaloupe 2` | 0.00 |
-| `Apple Crimson Snow 1` | 0.11 |
-| `Pepper Yellow 1` | 0.12 |
-| `Cherry Wax Red 3` · `Cherry Wax Red 1` | 0.16 · 0.23 |
-
-</div>
-
-> 📝 **Evaluation note:** the notebook output shows the Training folder spells one class `BlackBerry 4` (capital B) while the Test folder uses `Blackberry 4`. Sorted alphabetically, the two folders therefore list these classes in a different order, which shifts the label indices of `BlackBerry 4` and `Blackberry 1–3` by one — exactly the four classes scoring 0.00. This is an evaluation artifact, not a model failure; the reported 87.81% is slightly **understated** (these four classes are ≈1.4% of the test images). Passing `class_names=` from the training set when loading the Test folder fixes it. `Cantaloupe 2` (0.00) is unrelated to this and still needs investigating.
-
 <br/>
 
 <div align="center">
@@ -335,20 +261,6 @@ v1 reaches a higher score on the clean Fruits-360 test images, but it is **~19×
 - 🌆 Use real background images in the augmentation instead of synthetic ones
 - 🎯 Add targeted data for the weakest classes (cherry, apple and pepper variants)
 - 📈 Try a larger EfficientNet variant or a higher input resolution
-
-<br/>
-
-## 🌱 AgroVision App
-
-**AgroVision** is a multi-page Streamlit showcase for the model (folder `UI/`):
-
-- 🏠 **Home** — animated landing page with the headline metrics
-- 🔍 **Live Demo** — upload **one or many** images; every image is scanned independently and gets its own card with the predicted name, a **Fruit / Vegetable / Nut** label, a confidence bar and the runner-up guesses, plus copyable results and a CSV download
-- 📊 **Model Insights** — training curves for both phases, parameter breakdown and the weakest classes
-- 🗂 **Class Gallery** — all 262 classes grouped by produce type, searchable
-- ✨ **About** — project background and team, with a light / dark theme toggle on every page
-
-All numbers shown in the app come from a single file, `UI/metrics.py`.
 
 <br/>
 
