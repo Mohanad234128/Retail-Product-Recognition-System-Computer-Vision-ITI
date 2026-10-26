@@ -304,11 +304,8 @@ Best validation accuracy: `92.76%` (phase 1, epoch 15)
 
 ## 💡 Key Insights
 
-<<<<<<< HEAD
 > 🧠 **Fun scale check:** the model has seen about **117,846 training images × 21 epochs ≈ 2.5 million image-views** and now fits in a **~21 MB** file — small enough to run on a laptop CPU.
 
-=======
->>>>>>> 2e6771a621e31087f6d95f4be25cf176b3ff2740
 - **87.81% on a separate test set across 262 classes**, using a model with only **4.4 M parameters**.
 - **Validation (92.76%) is higher than test (87.81%)** because validation is a random 15% slice of the training folders, where near-identical rotations of the same fruit can fall on both sides of the split. The test set is the fairer number.
 - **Train accuracy sits below validation accuracy** because it is measured on heavily augmented images with dropout active, while validation is clean.
