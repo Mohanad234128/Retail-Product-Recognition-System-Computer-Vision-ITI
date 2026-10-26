@@ -23,7 +23,7 @@ from PIL import Image, ImageOps
 
 import ui_components as ui
 from class_names import produce_type
-from model_utils import find_model_path, load_prediction_model, predict_many, grad_cam, heatmap_overlay, auto_crop_many
+from model_utils import find_model_path, load_prediction_model, predict_many, grad_cam, heatmap_overlay
 
 
 def load_rgb_on_white(source) -> Image.Image:
@@ -140,21 +140,6 @@ else:
 
     if items:
         st.markdown("<div style='height:1.5rem;'></div>", unsafe_allow_html=True)
-
-        # Optional pre-processing: crop each photo to its main object.
-        if st.toggle("✂️ Auto-crop to the object — helps real-world photos", value=False, key="autocrop_on",
-                     help="Finds the main object on a plain background, crops to it and pads to a square, "
-                          "so the photo looks more like the centred studio images the model was trained on. "
-                          "Photos with busy backgrounds are left untouched."):
-            cropped, flags = auto_crop_many([im for _, im in items])
-            items = [(nm, c) for (nm, _), c in zip(items, cropped)]
-            k = sum(flags)
-            st.markdown(
-                f'<div style="color:{ui.TEXT_DIM}; font-size:.82rem; margin:.2rem 0 .6rem 0;">'
-                f'✂️ Cropped {k} of {len(items)} image{"s" if len(items) != 1 else ""}'
-                f'{"" if k else " — none had a clear object on a plain background"}.</div>',
-                unsafe_allow_html=True,
-            )
 
         # Every image is scanned independently (one batched forward pass,
         # but each row of the output belongs to exactly one image).
