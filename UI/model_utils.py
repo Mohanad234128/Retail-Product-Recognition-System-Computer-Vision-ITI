@@ -152,3 +152,56 @@ def heatmap_overlay(pil_image: Image.Image, cam: np.ndarray, alpha: float = 0.55
     a = (alpha * np.clip((c - 0.08) * 1.7, 0, 1))[..., None]
     out = np.array(base) * (1 - a) + heat * a
     return Image.fromarray(out.astype("uint8"))
+
+
+# ---------------------------------------------------------------------------
+# Auto-crop: isolate the main object so a real-world photo looks more like the
+# centred, tightly framed Fruits-360 training images.
+# ---------------------------------------------------------------------------
+def auto_crop(pil_image: Image.Image, margin: float = 0.12):
+    """Finds the object by how much it differs from the border colour, crops
+    to it, and pads to a square with the background colour (no squashing).
+    Returns (image, changed). Falls back to the original when the background
+    is busy / no clear object is found, so it can never make things worse
+    silently."""
+    im = pil_image.convert("RGB")
+    w, h = im.size
+    # work on a small copy for speed
+    s = 160 / max(w, h)
+    small = im.resize((max(8, round(w * s)), max(8, round(h * s))), Image.BILINEAR) if s < 1 else im
+    a = np.asarray(small, dtype=np.float32)
+    hh, ww, _ = a.shape
+    bw = max(2, int(min(hh, ww) * 0.06))
+    border = np.concatenate([
+        a[:bw].reshape(-1, 3), a[-bw:].reshape(-1, 3),
+        a[:, :bw].reshape(-1, 3), a[:, -bw:].reshape(-1, 3)])
+    bg = np.median(border, axis=0)
+    spread = np.mean(np.abs(border - bg).sum(axis=1))
+    if spread > 60:                      # busy / textured background: don't guess
+        return pil_image, False
+    dist = np.abs(a - bg).sum(axis=2)
+    thr = max(40.0, spread * 3)
+    mask = dist > thr
+    if mask.mean() < 0.01 or mask.mean() > 0.75:
+        return pil_image, False
+    rows = np.where(mask.mean(axis=1) > 0.01)[0]
+    cols = np.where(mask.mean(axis=0) > 0.01)[0]
+    if len(rows) < 3 or len(cols) < 3:
+        return pil_image, False
+    y0, y1, x0, x1 = rows[0], rows[-1] + 1, cols[0], cols[-1] + 1
+    if (y1 - y0) * (x1 - x0) > 0.80 * hh * ww:   # already tightly framed
+        return pil_image, False
+    # back to original coordinates, add margin, make square
+    sx, sy = w / ww, h / hh
+    X0, X1, Y0, Y1 = x0 * sx, x1 * sx, y0 * sy, y1 * sy
+    side = max(X1 - X0, Y1 - Y0) * (1 + 2 * margin)
+    cx, cy = (X0 + X1) / 2, (Y0 + Y1) / 2
+    box = (round(cx - side / 2), round(cy - side / 2), round(cx + side / 2), round(cy + side / 2))
+    canvas = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), tuple(int(v) for v in bg))
+    canvas.paste(im, (-box[0], -box[1]))
+    return canvas, True
+
+
+def auto_crop_many(pil_images):
+    out = [auto_crop(im) for im in pil_images]
+    return [o[0] for o in out], [o[1] for o in out]
