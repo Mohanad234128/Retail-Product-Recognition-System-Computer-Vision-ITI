@@ -23,7 +23,7 @@ from PIL import Image, ImageOps
 
 import ui_components as ui
 from class_names import produce_type
-from model_utils import find_model_path, load_prediction_model, predict_many
+from model_utils import find_model_path, load_prediction_model, predict_many, grad_cam, heatmap_overlay
 
 
 def load_rgb_on_white(source) -> Image.Image:
@@ -195,6 +195,29 @@ else:
                             ui.image_result_card(items[idx][1], items[idx][0], all_results[idx], types[idx], idx),
                             unsafe_allow_html=True,
                         )
+
+        # Neural X-ray (Grad-CAM): where did the model look?
+        st.markdown("<div style='height:1rem;'></div>", unsafe_allow_html=True)
+        if st.toggle("🔬 Neural X-ray — show where the model looked", value=False, key="xray_on"):
+            try:
+                with st.spinner("Tracing the model's attention..."):
+                    cams = grad_cam(model, [im for _, im in items])
+                st.markdown(ui.xray_legend(), unsafe_allow_html=True)
+                per_row = 1 if n == 1 else 3
+                for start in range(0, n, per_row):
+                    cols = st.columns(per_row)
+                    for j, col in enumerate(cols):
+                        idx = start + j
+                        if idx >= n:
+                            break
+                        with col:
+                            st.markdown(
+                                ui.xray_card(items[idx][1], heatmap_overlay(items[idx][1], cams[idx]),
+                                             f"{all_results[idx][0][1]} · {round(all_results[idx][0][2] * 100, 1)}%", idx),
+                                unsafe_allow_html=True,
+                            )
+            except Exception as exc:  # noqa: BLE001
+                st.warning(f"Neural X-ray isn't available for this model file ({exc}).")
 
         # Copy-able + downloadable results for every image.
         result_lines = []

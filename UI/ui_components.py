@@ -233,6 +233,11 @@ def logo_svg(size: int = 34) -> str:
 
 def inject_global_css(full_bleed: bool = False):
     _apply_theme()
+    _cols = [ACCENT, ACCENT_DEEP, ACCENT_PURPLE, ACCENT_YELLOW, ACCENT_TOMATO, ACCENT_BLUE]
+    _PX = "".join(
+        f'<span class="px" style="left:{(i * 53) % 97 + 1}%; background:{_cols[i % 6]}; animation-duration:{9 + (i * 7) % 11}s; animation-delay:-{(i * 3) % 13}s; width:{5 + (i % 4) * 2}px; height:{5 + (i % 4) * 2}px;"></span>'
+        for i in range(22)
+    )
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
@@ -395,7 +400,7 @@ def inject_global_css(full_bleed: bool = False):
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }}
 
-    .section {{ padding: 3.5rem {"6vw" if full_bleed else "0"}; max-width: {"1180px" if full_bleed else "none"}; margin: 0 auto; }}
+    .section {{ padding: {"3.5rem 6vw" if full_bleed else "1rem 0 3.5rem"}; max-width: {"1180px" if full_bleed else "none"}; margin: 0 auto; }}
     .section-label {{
         display: inline-block; color: {ACCENT_DEEP}; font-family: 'Inter', sans-serif; font-weight: 700;
         letter-spacing: .18em; text-transform: uppercase; font-size: .72rem; margin-bottom: .8rem;
@@ -421,9 +426,9 @@ def inject_global_css(full_bleed: bool = False):
     .glass-card::after {{
         content: ""; position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
         background: linear-gradient(120deg, transparent, {ACCENT}1F, {ACCENT_DEEP}14, transparent);
-        transform: skewX(-18deg); transition: left .75s cubic-bezier(.2,.7,.3,1); pointer-events: none;
+        transform: skewX(-18deg); transition: left .75s cubic-bezier(.2,.7,.3,1); pointer-events: none; opacity: 0;
     }}
-    .glass-card:hover::after {{ left: 130%; }}
+    .glass-card:hover::after {{ left: 130%; opacity: 1; }}
 
     .accent-btn {{
         display: inline-block; background: {GRADIENT}; color: #FFFBF3 !important;
@@ -567,6 +572,82 @@ def inject_global_css(full_bleed: bool = False):
         transform: translateX(-100%); animation: shimmer 1.4s ease-in-out infinite;
     }}
     @keyframes shimmer {{ to {{ transform: translateX(100%); }} }}
+
+    /* ================= WOW LAYER ================= */
+    @property --ang {{ syntax: "<angle>"; inherits: false; initial-value: 0deg; }}
+    @keyframes spinAng {{ to {{ --ang: 360deg; }} }}
+    @keyframes titleSweep {{ to {{ background-position: -200% 0; }} }}
+    @keyframes railMove {{ to {{ background-position: 200% 0; }} }}
+    @keyframes pxRise {{ 0% {{ transform: translateY(0) scale(.6); opacity: 0; }} 15% {{ opacity: .8; }} 100% {{ transform: translateY(-105vh) scale(1.1); opacity: 0; }} }}
+    @keyframes beam {{ 0% {{ transform: translateY(-12vh); }} 100% {{ transform: translateY(112vh); }} }}
+    @keyframes blink {{ 50% {{ opacity: .25; }} }}
+    @keyframes navPulse {{ 0%,100% {{ box-shadow: 0 0 0 0 {ACCENT}00, 0 0 14px -2px {ACCENT}66; }} 50% {{ box-shadow: 0 0 0 4px {ACCENT}14, 0 0 22px 0 {ACCENT}88; }} }}
+
+    ::selection {{ background: {ACCENT}55; color: {TEXT}; }}
+
+    /* neural dot-grid + slow vision "scan beam" over the whole app */
+    .aurora-bg::before {{
+        content: ""; position: absolute; inset: 0;
+        background-image: radial-gradient({ACCENT}55 1px, transparent 1.2px);
+        background-size: 34px 34px; opacity: .22;
+        -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 78%);
+        mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 78%);
+    }}
+    .aurora-bg::after {{
+        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 140px;
+        background: linear-gradient(180deg, transparent, {ACCENT}10 70%, {ACCENT}30 99%, transparent 100%);
+        animation: beam 11s linear infinite; opacity: {round(.9*BLOB_OPACITY,2)};
+    }}
+    .px {{ position: absolute; bottom: -20px; width: 8px; height: 8px; border-radius: 2px; opacity: 0; animation: pxRise linear infinite; }}
+    .hud {{
+        position: fixed; left: 18px; bottom: 12px; z-index: 5; pointer-events: none;
+        font-family: 'SFMono-Regular', Consolas, monospace; font-size: .68rem; letter-spacing: .08em;
+        color: {TEXT_DIM}; text-transform: uppercase; display: flex; gap: .6rem; align-items: center;
+        background: {BG_ELEV}E6; border: 1px solid {BORDER}; border-radius: 999px; padding: .35rem .8rem; backdrop-filter: blur(8px);
+    }}
+    .hud i {{ width: 7px; height: 7px; border-radius: 50%; background: {ACCENT}; box-shadow: 0 0 10px {ACCENT}; animation: blink 1.6s infinite; display: inline-block; }}
+    @media (max-width: 900px) {{ .hud {{ display: none; }} }}
+
+    /* cards: rotating light around the border, brighter on hover */
+    .glass-card {{
+        border: 1.5px solid transparent !important;
+        background:
+            linear-gradient({BG_ELEV}, {BG_ELEV}) padding-box,
+            conic-gradient(from var(--ang), {BORDER} 0%, {ACCENT}AA 12%, {BORDER} 28%, {BORDER} 55%, {ACCENT_PURPLE}88 68%, {BORDER} 82%, {BORDER} 100%) border-box !important;
+        animation-name: spinAng; animation-duration: 9s; animation-iteration-count: infinite; animation-timing-function: linear;
+    }}
+    .glass-card:hover {{
+        background:
+            linear-gradient({BG_ELEV}, {BG_ELEV}) padding-box,
+            conic-gradient(from var(--ang), {ACCENT}, {ACCENT_DEEP}, {ACCENT_PURPLE}, {ACCENT_TOMATO}, {ACCENT2}, {ACCENT}) border-box !important;
+        animation-duration: 3s;
+    }}
+    /* .reveal-up already sets an animation; run both */
+    .glass-card.reveal-up {{ animation: fadeUp .7s ease both, spinAng 9s linear infinite; }}
+    @supports (animation-timeline: view()) {{
+        .glass-card.reveal-up {{ animation: revealUp linear both, spinAng 9s linear infinite; animation-timeline: view(), auto; animation-range: entry 0% cover 30%, normal; }}
+    }}
+
+    /* headings: light sweep across titles */
+    .section-title, .hero-title {{
+        background: linear-gradient(100deg, {TEXT} 38%, {ACCENT} 48%, {ACCENT_DEEP} 52%, {TEXT} 62%) 0 0 / 300% 100%;
+        -webkit-background-clip: text; background-clip: text; color: transparent !important;
+        animation: titleSweep 7s ease-in-out infinite;
+    }}
+    .section-title::after {{
+        content: ""; display: block; height: 3px; width: 64px; margin-top: .55rem; border-radius: 3px;
+        background: linear-gradient(90deg, {ACCENT}, {ACCENT_DEEP}, {ACCENT_PURPLE});
+    }}
+
+    /* nav + stat cards */
+    div[data-testid="stPageLink"] a {{ transition: transform .25s cubic-bezier(.2,.9,.3,1.4), box-shadow .25s ease, border-color .25s ease; }}
+    div[data-testid="stPageLink"] a:hover {{ transform: translateY(-3px); box-shadow: 0 10px 24px -10px {ACCENT}88; }}
+    div[data-testid="stPageLink"] a[aria-current="page"] {{ animation: navPulse 2.8s ease-in-out infinite; }}
+    .mcard {{ transition: transform .3s cubic-bezier(.2,.9,.3,1.4), box-shadow .3s ease, border-color .3s ease; }}
+    .mcard:hover {{ transform: translateY(-6px) scale(1.04); border-color: {ACCENT}; box-shadow: 0 18px 40px -14px {ACCENT}77; }}
+    div[data-testid="stFileUploader"] {{ transition: box-shadow .3s ease, border-color .3s ease; }}
+    div[data-testid="stFileUploader"]:hover {{ border-color: {ACCENT}; box-shadow: 0 0 0 4px {ACCENT}1A, 0 0 36px -6px {ACCENT}66; }}
+    @media (prefers-reduced-motion: reduce) {{ .aurora-bg::after, .px, .glass-card, .section-title, .hero-title {{ animation: none !important; }} }}
     </style>
     <div class="aurora-bg">
     <div class="aurora-blob blob-a"></div>
@@ -574,8 +655,10 @@ def inject_global_css(full_bleed: bool = False):
     <div class="aurora-blob blob-c"></div>
     <div class="aurora-blob blob-d"></div>
     <div class="aurora-blob blob-e"></div>
+    {_PX}
     </div>
     <div class="grain-overlay"></div>
+    <div class="hud"><i></i>AgroVision · EfficientNetB0 · {M.NUM_CLASSES} classes · {M.TEST_ACC:.2f}% test acc</div>
     """, unsafe_allow_html=True)
 
 
@@ -1008,4 +1091,38 @@ def image_result_card(pil_image, filename: str, results, ptype: str, index: int 
         f'<div style="width:{pct}%; height:100%; background:linear-gradient(90deg, {rgba(color, 0.6)}, {color});"></div></div>'
         f'<div style="color:{color}; font-weight:700; font-size:.9rem; margin-bottom:.55rem;">{pct}% confidence</div>'
         f'{alts}</div>'
+    )
+
+
+def xray_card(original, overlay, label: str, index: int = 0) -> str:
+    """Side-by-side original | Grad-CAM overlay. Single-line HTML (dedent-safe)."""
+    a = image_to_data_uri(original, max_dim=300)
+    b = image_to_data_uri(overlay, max_dim=300)
+    return (
+        f'<div class="glass-card reveal-up" style="padding:.9rem; animation-delay:{min(index, 8) * 0.07}s;">'
+        f'<div style="display:grid; grid-template-columns:1fr 1fr; gap:.5rem;">'
+        f'<div style="border-radius:10px; overflow:hidden; background:{BG}; aspect-ratio:1/1;"><img src="{a}" style="width:100%; height:100%; object-fit:contain; display:block;"/></div>'
+        f'<div class="xray-wrap" style="border-radius:10px; overflow:hidden; background:{BG}; aspect-ratio:1/1; position:relative;">'
+        f'<img class="xray-img" src="{b}" style="width:100%; height:100%; object-fit:contain; display:block; animation-delay:{0.3 + min(index, 8) * 0.12}s;"/>'
+        f'<div class="xray-line" style="animation-delay:{0.3 + min(index, 8) * 0.12}s;"></div></div></div>'
+        f'<div style="color:{TEXT_DIM}; font-size:.74rem; font-weight:600; letter-spacing:.04em; margin:.6rem 0 .1rem 0;">Image {index + 1}</div>'
+        f'<div style="font-family:\'Fraunces\',serif; font-size:1.05rem; font-weight:700; color:{TEXT};">{label}</div></div>'
+    )
+
+
+def xray_legend() -> str:
+    return (
+        '<style>'
+        '@keyframes xrayWipe{from{clip-path:inset(0 100% 0 0);}to{clip-path:inset(0 0 0 0);}}'
+        '@keyframes xrayLine{from{left:0;opacity:1;}to{left:100%;opacity:0;}}'
+        '.xray-img{animation:xrayWipe 1.4s cubic-bezier(.4,0,.2,1) both;}'
+        '.xray-line{position:absolute; top:0; bottom:0; width:3px; left:0; opacity:0; background:#34d399; box-shadow:0 0 14px 4px rgba(52,211,153,.8); animation:xrayLine 1.4s cubic-bezier(.4,0,.2,1) both;}'
+        '</style>'
+        f'<div class="glass-card" style="padding:1rem 1.3rem; margin-bottom:1rem;">'
+        f'<div style="font-family:\'Fraunces\',serif; font-size:1.3rem; font-weight:700; margin-bottom:.35rem;">🔬 Neural X-ray</div>'
+        f'<div style="color:{TEXT_DIM}; font-size:.85rem; line-height:1.55; margin-bottom:.7rem;">'
+        f'Grad-CAM shows <b>where the model looked</b> to reach its answer: it measures how much each region of the image pushed the winning class up. '
+        f'Warm areas decided the prediction, cool areas were ignored.</div>'
+        f'<div style="display:flex; align-items:center; gap:.7rem; font-size:.75rem; color:{TEXT_DIM};">'
+        f'<span>ignored</span><div style="flex:1; max-width:260px; height:8px; border-radius:99px; background:linear-gradient(90deg,#3b4cc0,#4fc3f7,#8be08b,#ffeb3b,#ff9800,#e53935);"></div><span>decisive</span></div></div>'
     )
